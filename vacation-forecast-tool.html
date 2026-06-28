@@ -36,7 +36,7 @@
     <div style="flex:1 1 330px;max-width:372px;position:sticky;top:22px;align-self:flex-start;display:flex;flex-direction:column;gap:14px">
 
       <!-- inputs card -->
-      <div style="background:#FBFCFD;border:1px solid #E5E9EE;border-radius:14px;padding:18px 16px">
+      <div style="background:#FBFCFD;border:1px solid #E5E9EE;border-radius:14px;padding:18px 16px;position:relative;z-index:1">
         <div style="font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:#5C6776;font-weight:600;margin-bottom:15px">Your details</div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:13px">
           <div style="display:flex;flex-direction:column;gap:7px">
@@ -75,7 +75,7 @@
             <label for="cap" style="font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.09em;text-transform:uppercase;color:#5C6776;font-weight:500">Max balance (hrs) &middot; set by tier</label>
             <input id="cap" type="number" inputmode="decimal" step="1" placeholder="none" readonly style="font-family:'IBM Plex Mono',monospace;font-size:14px;color:#16212E;background:#E9EDF1;border:1px solid #DCE1E7;border-radius:9px;padding:11px 10px;width:100%;text-align:center;appearance:none;-webkit-appearance:none">
           </div>
-          <div id="holToggle" style="grid-column:span 2;display:flex;align-items:center;gap:11px;cursor:pointer;user-select:none;margin-top:2px">
+          <div id="holToggle" style="grid-column:span 2;position:relative;display:flex;align-items:center;gap:11px;cursor:pointer;user-select:none;margin-top:2px">
             <input id="hol" type="checkbox" style="position:absolute;opacity:0;width:0;height:0">
             <span id="holTrack" style="position:relative;flex:0 0 auto;width:42px;height:24px;border-radius:12px;background:#0E7C66;transition:background .15s">
               <span id="holThumb" style="position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:#fff;box-shadow:0 1px 2px rgba(22,33,46,.25);transition:transform .15s;transform:translateX(18px)"></span>
@@ -533,7 +533,11 @@
     $('cap').value=c==null?'':c;
     render();
   });
-  ['bal','date','hours','hz'].forEach(id=>$(id).addEventListener('change',render));
+  ['bal','date','hours','hz'].forEach(id=>{
+    const el=$(id);
+    el.addEventListener('input',render);
+    el.addEventListener('change',render);
+  });
 
   function boot(){
     const c=capHrs(TIERS[+tierSel.value]); $('cap').value=c==null?'':c;
