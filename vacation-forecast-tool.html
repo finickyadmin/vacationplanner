@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Vacation Accrual Forecaster</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  :root{
+    --paper:#E9EDF1; --card:#FBFCFD; --ink:#16212E; --ink-soft:#5C6776;
+    --earned:#0E7C66; --earned-soft:rgba(14,124,102,.12);
+    --used:#C2563B; --cap:#B98A22; --grid:#DCE1E7; --hair:#E5E9EE;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{
+    background:var(--paper); color:var(--ink);
+    font-family:'Inter',system-ui,sans-serif; -webkit-font-smoothing:antialiased;
+    padding:28px 18px 56px; line-height:1.45;
+  }
+  .wrap{max-width:920px;margin:0 auto}
+  .eyebrow{font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.22em;
+    text-transform:uppercase;color:var(--earned);font-weight:600;margin-bottom:10px}
+  h1{font-family:'Space Grotesk',sans-serif;font-weight:600;letter-spacing:-.02em;
+    font-size:clamp(26px,5.4vw,40px);line-height:1.05}
+  .sub{color:var(--ink-soft);font-size:14px;margin-top:9px;max-width:64ch}
+  .sub b{color:var(--ink);font-weight:600}
+
+  /* controls */
+  .controls{background:var(--card);border:1px solid var(--hair);border-radius:14px;
+    padding:20px 18px;margin:24px 0 22px}
+  .controls h2{font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.18em;
+    text-transform:uppercase;color:var(--ink-soft);font-weight:600;margin-bottom:16px}
+  .grid{display:grid;grid-template-columns:repeat(12,1fr);gap:14px}
+  .field{display:flex;flex-direction:column;gap:7px}
+  .field.bal{grid-column:span 3} .field.date{grid-column:span 3}
+  .field.hours{grid-column:span 3} .field.cap{grid-column:span 3}
+  .field.tier{grid-column:span 5} .field.hz{grid-column:span 3} .field.hol{grid-column:span 4}
+  label{font-family:'IBM Plex Mono',monospace;font-size:10.5px;letter-spacing:.1em;
+    text-transform:uppercase;color:var(--ink-soft);font-weight:500}
+  input,select{font-family:'IBM Plex Mono',monospace;font-size:14px;color:var(--ink);
+    background:#fff;border:1px solid var(--grid);border-radius:9px;padding:11px 12px;width:100%;
+    appearance:none;-webkit-appearance:none}
+  select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%235C6776' d='M6 8 0 0h12z'/%3E%3C/svg%3E");
+    background-repeat:no-repeat;background-position:right 13px center;padding-right:32px;cursor:pointer}
+  input:focus,select:focus{outline:none;border-color:var(--earned);box-shadow:0 0 0 3px var(--earned-soft)}
+  .hint{font-size:10px;color:var(--ink-soft);font-family:'Inter',sans-serif;margin-top:-1px}
+  .toggle{display:flex;align-items:center;gap:10px;background:#fff;border:1px solid var(--grid);
+    border-radius:9px;padding:11px 12px;cursor:pointer;user-select:none;transition:background .12s,border-color .12s}
+  .toggle.on{background:var(--earned-soft);border-color:var(--earned)}
+  .toggle input{appearance:none;-webkit-appearance:none;margin:0;flex:0 0 auto;width:18px;height:18px;
+    border:1.5px solid var(--grid);border-radius:5px;background:#fff;cursor:pointer;position:relative;transition:background .12s,border-color .12s}
+  .toggle input:checked{background:var(--earned);border-color:var(--earned)}
+  .toggle input:checked::after{content:'';position:absolute;left:5px;top:1px;width:5px;height:10px;
+    border:solid #fff;border-width:0 2px 2px 0;transform:rotate(45deg)}
+  .toggle input:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+  .toggle span{font-family:'Inter',sans-serif;font-size:13px;color:var(--ink)}
+  .row2{display:flex;gap:12px;align-items:center;margin-top:16px;flex-wrap:wrap}
+  button{font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:14px;color:#fff;
+    background:var(--earned);border:none;border-radius:9px;padding:12px 22px;cursor:pointer;letter-spacing:-.01em}
+  button:hover{background:#0a6b58} button:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+  .readout{font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--ink-soft)}
+  .readout b{color:var(--earned);font-weight:600}
+
+  /* stat tiles */
+  .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:0 0 22px}
+  .tile{background:var(--card);border:1px solid var(--hair);border-radius:12px;
+    padding:15px 16px 16px;position:relative;overflow:hidden}
+  .tile::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--accent,var(--earned))}
+  .tile .k{font-family:'IBM Plex Mono',monospace;font-size:10.5px;letter-spacing:.12em;
+    text-transform:uppercase;color:var(--ink-soft);margin-bottom:9px}
+  .tile .v{font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:27px;letter-spacing:-.02em;line-height:1}
+  .tile .u{font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--ink-soft);margin-top:6px}
+  .tile.b{--accent:var(--used)} .tile.c{--accent:var(--cap)} .tile.d{--accent:var(--ink)}
+
+  /* chart */
+  .panel{background:var(--card);border:1px solid var(--hair);border-radius:14px;padding:20px 18px 14px}
+  .panel-head{display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:8px;margin-bottom:4px}
+  .panel-head h2{font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:16px;letter-spacing:-.01em}
+  .legend{display:flex;gap:16px;flex-wrap:wrap;font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--ink-soft)}
+  .legend span{display:inline-flex;align-items:center;gap:6px}
+  .dot{width:10px;height:10px;border-radius:2px;display:inline-block}
+  .dot.e{background:var(--earned)} .dot.u{background:var(--used);transform:rotate(45deg)}
+  .dot.c{width:14px;height:0;border-top:2px dashed var(--cap)}
+  #capLegend.off{display:none}
+  .chart-box{position:relative;height:340px;margin-top:8px}
+
+  /* table */
+  .ledger{margin-top:26px}
+  .ledger h2{font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:16px;margin-bottom:12px}
+  .scroll{overflow-x:auto;border:1px solid var(--hair);border-radius:12px;background:var(--card)}
+  table{border-collapse:collapse;width:100%;min-width:560px;font-family:'IBM Plex Mono',monospace;font-size:12.5px}
+  thead th{text-align:right;font-weight:500;color:var(--ink-soft);font-size:10.5px;letter-spacing:.08em;
+    text-transform:uppercase;padding:12px 14px;border-bottom:1.5px solid var(--ink);white-space:nowrap}
+  thead th:first-child,tbody td:first-child{text-align:left}
+  tbody td{padding:10px 14px;text-align:right;border-bottom:1px solid var(--hair);white-space:nowrap}
+  tbody tr:last-child td{border-bottom:none}
+  tbody tr.hol{background:rgba(194,86,59,.045)}
+  tbody tr:hover{background:rgba(14,124,102,.05)}
+  .bal{font-weight:600;color:var(--ink)}
+  .pos{color:var(--earned)} .neg{color:var(--used)}
+  .tag{font-family:'Inter',sans-serif;font-size:10px;color:var(--used);font-weight:500}
+  tfoot td{padding:11px 14px;font-weight:600;color:var(--ink);border-top:1.5px solid var(--ink);text-align:right}
+  tfoot td:first-child{text-align:left}
+
+  .notes{margin-top:22px;font-size:12px;color:var(--ink-soft);line-height:1.7}
+  .notes b{color:var(--ink);font-family:'IBM Plex Mono',monospace;font-weight:500}
+  .notes .row{display:flex;gap:9px;margin-bottom:3px}
+  .notes .row::before{content:'—';color:var(--earned)}
+
+  @media(max-width:680px){
+    .field.bal,.field.date,.field.hours,.field.tier,.field.cap,.field.hz,.field.hol{grid-column:span 12}
+    .stats{grid-template-columns:repeat(2,1fr)}
+    .chart-box{height:300px}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="eyebrow">Vacation Accrual · Self-Serve Forecast</div>
+  <h1>Project your banked vacation</h1>
+  <p class="sub">Enter your balance, last pay-period date, accrual tier, and average hours per period. The tool projects your accrued vacation over the chosen horizon, assuming <b>no vacation is taken</b> beyond the six standard holidays. Accrual is <b>bi-weekly</b> — vacation earned each period is your hours worked × the tier rate.</p>
+
+  <div class="controls">
+    <h2>Your details</h2>
+    <div class="grid">
+      <div class="field bal">
+        <label for="bal">Current balance (hrs)</label>
+        <input id="bal" type="number" inputmode="decimal" step="0.01" value="55">
+      </div>
+      <div class="field date">
+        <label for="date">Last pay period end</label>
+        <input id="date" type="date" value="2026-06-26">
+      </div>
+      <div class="field hours">
+        <label for="hours">Avg hrs / pay period</label>
+        <input id="hours" type="number" inputmode="decimal" step="0.5" value="80">
+        <div class="hint">Bi-weekly. 80 = 40 hrs/wk.</div>
+      </div>
+      <div class="field cap">
+        <label for="cap">Max balance (hrs)</label>
+        <input id="cap" type="number" inputmode="decimal" step="1" placeholder="none">
+        <div class="hint">Editable. Blank = no cap.</div>
+      </div>
+      <div class="field tier">
+        <label for="tier">Accrual rate</label>
+        <select id="tier"></select>
+      </div>
+      <div class="field hz">
+        <label for="hz">Horizon</label>
+        <select id="hz">
+          <option value="6">6 months</option>
+          <option value="12" selected>12 months</option>
+          <option value="18">18 months</option>
+          <option value="24">24 months</option>
+        </select>
+      </div>
+      <div class="field hol">
+        <label>&nbsp;</label>
+        <label class="toggle" id="holToggle" for="hol"><input id="hol" type="checkbox" checked><span>Include 6 holidays as days off (−8 hrs used, no accrual)</span></label>
+      </div>
+    </div>
+    <div class="row2">
+      <button id="go">Update forecast</button>
+      <span class="readout" id="rateRead"></span>
+    </div>
+  </div>
+
+  <div class="stats">
+    <div class="tile"><div class="k">Current Balance</div><div class="v" id="s1v">—</div><div class="u" id="s1u"></div></div>
+    <div class="tile d"><div class="k" id="s2k">Projected End</div><div class="v" id="s2v">—</div><div class="u" id="s2u"></div></div>
+    <div class="tile b"><div class="k">Net Change</div><div class="v" id="s3v">—</div><div class="u" id="s3u"></div></div>
+    <div class="tile c"><div class="k">Headroom to Cap</div><div class="v" id="s4v">—</div><div class="u" id="s4u"></div></div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-head">
+      <h2>Balance staircase</h2>
+      <div class="legend">
+        <span><i class="dot e"></i>Accrual</span>
+        <span id="holLegend"><i class="dot u"></i>Holiday used (−8)</span>
+        <span id="capLegend"><i class="dot c"></i><span id="capLegendTxt">Max cap</span></span>
+      </div>
+    </div>
+    <div class="chart-box"><canvas id="chart"></canvas></div>
+  </div>
+
+  <div class="ledger">
+    <h2>Month-by-month ledger</h2>
+    <div class="scroll">
+      <table>
+        <thead><tr><th>Month</th><th>Accrued</th><th>Holiday Used</th><th>End Balance</th><th>Days</th></tr></thead>
+        <tbody id="tbody"></tbody>
+        <tfoot><tr><td>Total</td><td class="pos" id="tAcc"></td><td class="neg" id="tHol"></td><td id="tBal"></td><td id="tDays"></td></tr></tfoot>
+      </table>
+    </div>
+  </div>
+
+  <div class="notes" id="notes"></div>
+</div>
+
+<script>
+const TIERS=[
+  {label:"New Hire · Under 1 Year · Full-Time", rate:0.0654, cap:null},
+  {label:"New Hire · Under 1 Year · Half/Part-Time", rate:0.0847, cap:null},
+  {label:"Current Employee · Under 1 Year", rate:0.0847, cap:null},
+  {label:"Current Employee · Beginning 2nd Year", rate:0.0924, cap:null},
+  {label:"Current Employee · Beginning 3rd Year+", rate:0.1116, cap:464},
+  {label:"Current Employee · Beginning 10th Year+", rate:0.1308, cap:544},
+];
+const MON=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const $=id=>document.getElementById(id);
+
+// populate tier dropdown
+const tierSel=$('tier');
+TIERS.forEach((t,i)=>{
+  const o=document.createElement('option');
+  o.value=i; o.textContent=`${t.label} · ${t.rate}`;
+  tierSel.appendChild(o);
+});
+tierSel.value=4; // default: 3rd Year+, matches example
+
+// ---- date helpers ----
+const parseDate=s=>{const[a,b,c]=s.split('-').map(Number);return new Date(a,b-1,c);};
+const addDays=(d,n)=>{const x=new Date(d);x.setDate(x.getDate()+n);return x;};
+const dayIdx=(d,start)=>Math.round((d-start)/86400000);
+const lastMonday=(y,m)=>{const d=new Date(y,m+1,0);while(d.getDay()!==1)d.setDate(d.getDate()-1);return d;};
+const firstMonday=(y,m)=>{const d=new Date(y,m,1);while(d.getDay()!==1)d.setDate(d.getDate()+1);return d;};
+const thanksgiving=y=>{const d=new Date(y,10,1);while(d.getDay()!==4)d.setDate(d.getDate()+1);d.setDate(d.getDate()+21);return d;};
+
+function holidaysInWindow(start,end){
+  const res=[];
+  for(let y=start.getFullYear();y<=end.getFullYear();y++){
+    const list=[
+      ["New Year's Day",new Date(y,0,1)],
+      ["Memorial Day",lastMonday(y,4)],
+      ["Independence Day",new Date(y,6,4)],
+      ["Labor Day",firstMonday(y,8)],
+      ["Thanksgiving",thanksgiving(y)],
+      ["Christmas",new Date(y,11,25)],
+    ];
+    for(const [n,d] of list) if(d>start && d<=end) res.push({date:d,name:n});
+  }
+  res.sort((a,b)=>a.date-b.date);
+  return res;
+}
+
+let chart=null;
+
+function compute(){
+  const start=parseDate($('date').value);
+  const startBal=parseFloat($('bal').value)||0;
+  const tier=TIERS[+tierSel.value];
+  const hpp=parseFloat($('hours').value)||80;
+  const ACC=hpp*tier.rate;
+  const capRaw=$('cap').value.trim();
+  const cap=capRaw===''?Infinity:(parseFloat(capRaw)||Infinity);
+  const useHol=$('hol').checked;
+  const months=+$('hz').value;
+  const end=new Date(start); end.setMonth(end.getMonth()+months);
+
+  // events
+  const hols=useHol?holidaysInWindow(start,end):[];
+  const events=[];
+  // accrual credited each pay-period end, based on hours actually WORKED:
+  // holidays in a period aren't worked, so they earn no accrual
+  let pStart=new Date(start), pEnd=addDays(start,14);
+  while(pEnd<=end){
+    const inPeriod=hols.filter(h=>h.date>pStart&&h.date<=pEnd).length;
+    const worked=Math.max(0,hpp-8*inPeriod);
+    events.push({date:new Date(pEnd),kind:'accrual',delta:worked*tier.rate,name:''});
+    pStart=new Date(pEnd); pEnd=addDays(pEnd,14);
+  }
+  hols.forEach(h=>events.push({date:h.date,kind:'holiday',delta:-8,name:h.name}));
+  events.sort((a,b)=>(a.date-b.date)||((a.kind==='accrual'?0:1)-(b.kind==='accrual'?0:1)));
+
+  // walk timeline
+  let bal=startBal, earned=0, used=0;
+  const tl=[{date:new Date(start),bal,kind:'start',name:''}];
+  for(const e of events){
+    if(e.delta>0){const nb=Math.min(cap,bal+e.delta);earned+=nb-bal;bal=nb;}
+    else{const nb=Math.max(0,bal+e.delta);used+=bal-nb;bal=nb;}
+    tl.push({date:new Date(e.date),bal,kind:e.kind,name:e.name});
+  }
+  const endBal=bal;
+
+  // monthly rollup
+  let my=start.getFullYear(),mm=start.getMonth();
+  const ey=end.getFullYear(),em=end.getMonth();
+  const monthsArr=[];
+  while(my<ey||(my===ey&&mm<=em)){monthsArr.push([my,mm]);mm++;if(mm>11){mm=0;my++;}}
+  let b=startBal,ei=0;const rows=[];
+  for(const [yy,mo] of monthsArr){
+    const me=new Date(yy,mo+1,0);let acc=0,hol=0,names=[];
+    while(ei<events.length&&events[ei].date<=me){
+      const e=events[ei];
+      if(e.delta>0){const nb=Math.min(cap,b+e.delta);acc+=nb-b;b=nb;}
+      else{const nb=Math.max(0,b+e.delta);hol+=b-nb;b=nb;names.push(e.name);}
+      ei++;
+    }
+    rows.push({m:`${MON[mo]} ${yy}`,acc,hol,names,bal:b,days:b/8});
+  }
+
+  return {start,end,startBal,endBal,earned,used,tl,rows,cap,tier,ACC,months,hpp,
+          holCount:hols.length,peak:Math.max(...tl.map(p=>p.bal))};
+}
+
+function render(){
+  const d=compute();
+  const f1=x=>x.toFixed(1), r0=x=>Math.round(x);
+
+  // rate readout
+  $('rateRead').innerHTML=`<b>${d.tier.rate}</b>/hr × <b>${d.hpp}</b> hrs → <b>${d.ACC.toFixed(2)}</b> hrs/period → <b>${(d.tier.rate*d.hpp*26).toFixed(1)}</b> hrs (${f1(d.tier.rate*d.hpp*26/8)} days)/yr`;
+
+  // stat tiles
+  $('s1v').textContent=r0(d.startBal); $('s1u').textContent=`hrs · ${f1(d.startBal/8)} days`;
+  $('s2k').textContent=`Projected · ${d.months} mo`;
+  $('s2v').textContent=r0(d.endBal); $('s2u').textContent=`hrs · ${f1(d.endBal/8)} days`;
+  const net=d.endBal-d.startBal;
+  $('s3v').textContent=(net>=0?'+':'−')+r0(Math.abs(net));
+  $('s3u').textContent=`+${r0(d.earned)} earned −${r0(d.used)} used`;
+  if(isFinite(d.cap)){
+    const head=Math.max(0,d.cap-d.endBal);
+    $('s4v').textContent=head<=0?'0':r0(head);
+    $('s4u').textContent=head<=0?`at ${r0(d.cap)} hr cap`:`below ${r0(d.cap)} hr max`;
+  }else{$('s4v').textContent='—';$('s4u').textContent='no cap set';}
+
+  // chart datasets
+  const start=d.start;
+  const line=d.tl.map(p=>({x:dayIdx(p.date,start),y:p.bal}));
+  const holPts=d.tl.filter(p=>p.kind==='holiday').map(p=>({x:dayIdx(p.date,start),y:p.bal,name:p.name}));
+  const maxDay=dayIdx(d.end,start);
+  const top=isFinite(d.cap)?Math.max(d.peak,d.cap):d.peak;
+  let yMax=Math.max(80,Math.ceil(top*1.12/40)*40);
+  if(isFinite(d.cap)) yMax=Math.max(yMax,Math.ceil(d.cap/40)*40+40);
+  const stepSize=yMax<=200?40:80;
+
+  // month ticks
+  const TICKS=[],TLAB={};
+  let ty=start.getFullYear(),tm=start.getMonth();
+  for(let i=0;i<=d.months+1;i++){
+    const dt=new Date(ty,tm,1);
+    if(dt>=start){const dv=dayIdx(dt,start);TICKS.push(dv);
+      TLAB[dv]=MON[tm]+" '"+String(ty).slice(2);}
+    tm++;if(tm>11){tm=0;ty++;}
+  }
+
+  const datasets=[];
+  if(isFinite(d.cap)) datasets.push({label:'cap',data:[{x:0,y:d.cap},{x:maxDay,y:d.cap}],
+    borderColor:getComputedStyle(document.documentElement).getPropertyValue('--cap').trim(),
+    borderWidth:1.5,borderDash:[6,5],pointRadius:0,fill:false,tension:0,order:3});
+  const C=v=>getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+  datasets.push({label:'Balance',data:line,stepped:true,borderColor:C('--earned'),borderWidth:2.4,
+    pointRadius:0,fill:true,backgroundColor:C('--earned-soft'),order:2});
+  if(holPts.length) datasets.push({label:'Holiday used',data:holPts,type:'scatter',showLine:false,
+    pointStyle:'rectRot',pointRadius:5,pointHoverRadius:7,backgroundColor:C('--used'),
+    borderColor:'#fff',borderWidth:1.4,order:1});
+
+  // legend visibility
+  $('holLegend').style.display=holPts.length?'inline-flex':'none';
+  const capLeg=$('capLegend');
+  if(isFinite(d.cap)){capLeg.classList.remove('off');$('capLegendTxt').textContent=`Max cap ${r0(d.cap)} hrs`;}
+  else capLeg.classList.add('off');
+
+  // endpoint labels
+  const EP=[{x:0,y:d.startBal,t:r0(d.startBal)+' hrs',side:'start'},
+            {x:maxDay,y:d.endBal,t:r0(d.endBal)+' hrs',side:'end'}];
+  const endLabels={id:'endLabels',afterDatasetsDraw(c){
+    const{ctx,scales:{x,y}}=c;
+    EP.forEach(p=>{
+      const px=x.getPixelForValue(p.x),py=y.getPixelForValue(p.y);
+      ctx.save();ctx.font="600 12px 'Space Grotesk',sans-serif";
+      const w=ctx.measureText(p.t).width+14;
+      const bx=p.side==='start'?px+8:px-w-8,by=py-26;
+      ctx.fillStyle=C('--ink');ctx.beginPath();ctx.roundRect(bx,by,w,20,6);ctx.fill();
+      ctx.fillStyle='#fff';ctx.textBaseline='middle';ctx.fillText(p.t,bx+7,by+11);
+      ctx.fillStyle=C('--earned');ctx.beginPath();ctx.arc(px,py,4,0,7);ctx.fill();
+      ctx.strokeStyle='#fff';ctx.lineWidth=1.5;ctx.stroke();ctx.restore();
+    });
+  }};
+
+  if(chart) chart.destroy();
+  chart=new Chart($('chart'),{
+    type:'line',data:{datasets},
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      layout:{padding:{top:30,right:8,left:2}},
+      interaction:{mode:'nearest',intersect:false},
+      scales:{
+        x:{type:'linear',min:0,max:maxDay,grid:{color:C('--grid'),drawTicks:false},
+          border:{color:C('--grid')},
+          afterBuildTicks:a=>{a.ticks=TICKS.map(v=>({value:v}));},
+          ticks:{callback:v=>TLAB[v]||'',font:{family:"'IBM Plex Mono'",size:10.5},
+            color:C('--ink-soft'),maxRotation:0,autoSkip:true,maxTicksLimit:9,padding:8}},
+        y:{min:0,max:yMax,grid:{color:C('--grid'),drawTicks:false},border:{display:false},
+          ticks:{stepSize,font:{family:"'IBM Plex Mono'",size:10.5},color:C('--ink-soft'),
+            padding:8,callback:v=>v+' hr'}}
+      },
+      plugins:{
+        legend:{display:false},
+        tooltip:{backgroundColor:C('--ink'),padding:10,cornerRadius:8,displayColors:false,
+          titleFont:{family:"'IBM Plex Mono'",size:11},bodyFont:{family:"'Space Grotesk'",size:13,weight:'600'},
+          callbacks:{
+            title:items=>{const dt=addDays(start,items[0].parsed.x);
+              return dt.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});},
+            label:ctx=>{
+              if(ctx.dataset.label==='Holiday used') return ctx.raw.name+` · −8 hrs → ${ctx.parsed.y.toFixed(1)} hr`;
+              if(ctx.dataset.label==='cap') return null;
+              return `${ctx.parsed.y.toFixed(1)} hrs · ${(ctx.parsed.y/8).toFixed(1)} days`;}
+          }}
+      }
+    },
+    plugins:[endLabels]
+  });
+
+  // table
+  const tb=$('tbody');tb.innerHTML='';
+  let tA=0,tH=0;
+  d.rows.forEach(r=>{
+    tA+=r.acc;tH+=r.hol;
+    const tr=document.createElement('tr');
+    if(r.hol>0) tr.className='hol';
+    const holCell=r.hol>0?`−${r0(r.hol)} <span class="tag">${r.names.join(', ')}</span>`:'—';
+    tr.innerHTML=`<td>${r.m}</td>
+      <td class="pos">${r.acc>0?'+'+r.acc.toFixed(2):'—'}</td>
+      <td class="neg">${holCell}</td>
+      <td class="bal">${r.bal.toFixed(2)}</td>
+      <td>${r.days.toFixed(1)}</td>`;
+    tb.appendChild(tr);
+  });
+  $('tAcc').textContent='+'+tA.toFixed(2);
+  $('tHol').textContent=tH>0?'−'+r0(tH):'—';
+  $('tBal').textContent=d.endBal.toFixed(2);
+  $('tDays').textContent=f1(d.endBal/8);
+
+  // notes
+  const capNote=isFinite(d.cap)
+    ? `Balance is capped at <b>${r0(d.cap)} hrs (${f1(d.cap/8)} days)</b>; this path ${d.peak>=d.cap?'<b>reaches</b>':'peaks at <b>'+r0(d.peak)+' hrs</b> and never reaches'} the cap.`
+    : `No cap is applied for this tier — enter one in the Max balance field if your plan has one.`;
+  const tierNote = +tierSel.value===5
+    ? `<div class="row">The 10th-year cap was published as "5444 hrs" — that appears to be a typo for <b>544</b> (68 days × 8). Adjust the cap field if your plan differs.</div>` : '';
+  $('notes').innerHTML=
+    `<div class="row">Accrual <b>${d.tier.rate} hr/hr worked</b> × <b>${d.hpp} hrs/period</b> → <b>${d.ACC.toFixed(3)} hrs</b> per full bi-weekly period → <b>${(d.tier.rate*d.hpp*26).toFixed(1)} hrs (${f1(d.tier.rate*d.hpp*26/8)} days)</b> per year if no holidays fall in the period.</div>`+
+    (d.holCount>0?`<div class="row">Window contains <b>${d.holCount} holidays</b>. Each draws down <b>8 hrs</b> (vacation used) <i>and</i> earns no accrual, since those hours aren't worked — so a holiday period accrues only <b>${((d.hpp-8)*d.tier.rate).toFixed(3)} hrs</b>. Total holiday impact: <b>−${(d.holCount*8).toFixed(0)} hrs used</b> and <b>−${(d.holCount*8*d.tier.rate).toFixed(1)} hrs</b> of forgone accrual.</div>`:`<div class="row">Holidays are <b>not</b> modeled (toggle is off) — every period accrues the full amount.</div>`)+
+    `<div class="row">${capNote}</div>`+
+    tierNote;
+}
+
+// tier change → prefill cap
+tierSel.addEventListener('change',()=>{
+  const t=TIERS[+tierSel.value];
+  $('cap').value=t.cap==null?'':t.cap;
+  render();
+});
+['bal','date','hours','cap','hz'].forEach(id=>$(id).addEventListener('change',render));
+const syncToggle=()=>$('holToggle').classList.toggle('on',$('hol').checked);
+$('hol').addEventListener('change',()=>{syncToggle();render();});
+syncToggle();
+$('go').addEventListener('click',render);
+
+// init: prefill cap for default tier, draw
+$('cap').value=TIERS[+tierSel.value].cap ?? '';
+render();
+</script>
+</body>
+</html>
