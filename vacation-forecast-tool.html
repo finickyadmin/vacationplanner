@@ -13,7 +13,7 @@
     --paper:#E9EDF1; --card:#FBFCFD; --ink:#16212E; --ink-soft:#5C6776;
     --earned:#0E7C66; --earned-soft:rgba(14,124,102,.12);
     --used:#C2563B; --cap:#B98A22; --grid:#DCE1E7; --hair:#E5E9EE;
-    --vac:#4F6D9E; --vac-soft:rgba(79,109,158,.12);
+    --vac:#4F6D9E; --vac-soft:rgba(79,109,158,.12); --used-soft:rgba(194,86,59,.16);
   }
   *{box-sizing:border-box;margin:0;padding:0}
   body{
@@ -38,7 +38,7 @@
   .field{display:flex;flex-direction:column;gap:7px}
   .field.bal{grid-column:span 3} .field.date{grid-column:span 3}
   .field.hours{grid-column:span 3} .field.cap{grid-column:span 3}
-  .field.tier{grid-column:span 5} .field.hz{grid-column:span 3} .field.hol{grid-column:span 4}
+  .field.tier{grid-column:span 6} .field.hz{grid-column:span 3} .field.hol{grid-column:span 12;align-items:flex-start}
   label{font-family:'IBM Plex Mono',monospace;font-size:10.5px;letter-spacing:.1em;
     text-transform:uppercase;color:var(--ink-soft);font-weight:500}
   input,select{font-family:'IBM Plex Mono',monospace;font-size:14px;color:var(--ink);
@@ -48,16 +48,17 @@
     background-repeat:no-repeat;background-position:right 13px center;padding-right:32px;cursor:pointer}
   input:focus,select:focus{outline:none;border-color:var(--earned);box-shadow:0 0 0 3px var(--earned-soft)}
   .hint{font-size:10px;color:var(--ink-soft);font-family:'Inter',sans-serif;margin-top:-1px}
-  .toggle{display:flex;align-items:center;gap:10px;background:#fff;border:1px solid var(--grid);
-    border-radius:9px;padding:11px 12px;cursor:pointer;user-select:none;transition:background .12s,border-color .12s}
-  .toggle.on{background:var(--earned-soft);border-color:var(--earned)}
-  .toggle input{appearance:none;-webkit-appearance:none;margin:0;flex:0 0 auto;width:18px;height:18px;
-    border:1.5px solid var(--grid);border-radius:5px;background:#fff;cursor:pointer;position:relative;transition:background .12s,border-color .12s}
-  .toggle input:checked{background:var(--earned);border-color:var(--earned)}
-  .toggle input:checked::after{content:'';position:absolute;left:5px;top:1px;width:5px;height:10px;
-    border:solid #fff;border-width:0 2px 2px 0;transform:rotate(45deg)}
-  .toggle input:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
-  .toggle span{font-family:'Inter',sans-serif;font-size:13px;color:var(--ink)}
+  .switch{display:inline-flex;align-items:center;gap:11px;cursor:pointer;user-select:none}
+  .switch input{position:absolute;opacity:0;width:0;height:0}
+  .switch .track{position:relative;flex:0 0 auto;width:42px;height:24px;border-radius:12px;
+    background:var(--grid);transition:background .15s}
+  .switch .thumb{position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;
+    background:#fff;box-shadow:0 1px 2px rgba(22,33,46,.25);transition:transform .15s}
+  .switch input:checked + .track{background:var(--earned)}
+  .switch input:checked + .track .thumb{transform:translateX(18px)}
+  .switch input:focus-visible + .track{outline:2px solid var(--ink);outline-offset:2px}
+  .switch .txt{font-family:'Inter',sans-serif;font-size:13px;color:var(--ink);
+    text-transform:none;letter-spacing:normal;font-weight:400}
   .row2{display:flex;gap:12px;align-items:center;margin-top:16px;flex-wrap:wrap}
   button{font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:14px;color:#fff;
     background:var(--earned);border:none;border-radius:9px;padding:12px 22px;cursor:pointer;letter-spacing:-.01em}
@@ -155,7 +156,7 @@
     <div class="grid">
       <div class="field bal">
         <label for="bal">Current balance (hrs)</label>
-        <input id="bal" type="number" inputmode="decimal" step="0.01" value="55">
+        <input id="bal" type="number" inputmode="decimal" step="0.01" value="0">
       </div>
       <div class="field date">
         <label for="date">Last pay period end</label>
@@ -166,15 +167,6 @@
         <input id="hours" type="number" inputmode="decimal" step="0.5" value="80">
         <div class="hint">Bi-weekly. 80 = 40 hrs/wk.</div>
       </div>
-      <div class="field cap">
-        <label for="cap">Max balance (hrs)</label>
-        <input id="cap" type="number" inputmode="decimal" step="1" placeholder="none">
-        <div class="hint">Editable. Blank = no cap.</div>
-      </div>
-      <div class="field tier">
-        <label for="tier">Accrual rate</label>
-        <select id="tier"></select>
-      </div>
       <div class="field hz">
         <label for="hz">Horizon</label>
         <select id="hz">
@@ -184,9 +176,22 @@
           <option value="24">24 months</option>
         </select>
       </div>
+      <div class="field tier">
+        <label for="tier">Accrual rate</label>
+        <select id="tier"></select>
+      </div>
+      <div class="field cap">
+        <label for="cap">Max balance (hrs)</label>
+        <input id="cap" type="number" inputmode="decimal" step="1" placeholder="none">
+        <div class="hint">Editable. Blank = no cap.</div>
+      </div>
       <div class="field hol">
-        <label>&nbsp;</label>
-        <label class="toggle" id="holToggle" for="hol"><input id="hol" type="checkbox" checked><span>Include 6 holidays as days off (−8 hrs used, no accrual)</span></label>
+        <label>Holidays</label>
+        <label class="switch" id="holToggle">
+          <input id="hol" type="checkbox" checked>
+          <span class="track"><span class="thumb"></span></span>
+          <span class="txt">Include the 6 standard holidays as days off (−8 hrs used, no accrual)</span>
+        </label>
       </div>
     </div>
     <div class="row2">
@@ -240,12 +245,12 @@
 
 <script>
 const TIERS=[
-  {label:"New Hire · Under 1 Year · Full-Time", rate:0.0654, maxDays:null},
-  {label:"New Hire · Under 1 Year · Half/Part-Time", rate:0.0847, maxDays:null},
-  {label:"Current Employee · Under 1 Year", rate:0.0847, maxDays:null},
-  {label:"Current Employee · Beginning 2nd Year", rate:0.0924, maxDays:null},
-  {label:"Current Employee · Beginning 3rd Year+", rate:0.1116, maxDays:58},
-  {label:"Current Employee · Beginning 10th Year+", rate:0.1308, maxDays:68},
+  {label:"New hire · <1 yr · Full-time", rate:0.0654, maxDays:null},
+  {label:"New hire · <1 yr · Part-time", rate:0.0847, maxDays:null},
+  {label:"Current · <1 yr", rate:0.0847, maxDays:null},
+  {label:"Current · 2nd year", rate:0.0924, maxDays:null},
+  {label:"Current · 3rd year+", rate:0.1116, maxDays:58},
+  {label:"Current · 10th year+", rate:0.1308, maxDays:68},
 ];
 const capHrs=t=>t.maxDays==null?null:t.maxDays*8;  // cap derived from the rate's max-days parameter
 const MON=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
@@ -308,8 +313,13 @@ function addVacRow(s='',e='',h=8){
     <div class="f"><label>End date</label><input type="date" class="ve" value="${e}"></div>
     <div class="f hpd"><label>Hrs / day</label><input type="number" class="vh" inputmode="decimal" step="0.5" value="${h}"></div>
     <button class="vac-del" title="Remove" aria-label="Remove vacation period">×</button>`;
-  row.querySelectorAll('input').forEach(inp=>inp.addEventListener('change',render));
+  const vs=row.querySelector('.vs'), ve=row.querySelector('.ve'), vh=row.querySelector('.vh');
+  const syncDates=()=>{ if(vs.value){ ve.min=vs.value; if(!ve.value||ve.value<vs.value) ve.value=vs.value; } };
+  vs.addEventListener('change',()=>{ syncDates(); render(); });
+  ve.addEventListener('change',()=>{ if(vs.value&&ve.value&&ve.value<vs.value) ve.value=vs.value; render(); });
+  vh.addEventListener('change',render);
   row.querySelector('.vac-del').addEventListener('click',()=>{row.remove();render();});
+  if(s) syncDates();
   vacRows.appendChild(row);
 }
 function readVacations(){
@@ -454,11 +464,24 @@ function render(){
   }
 
   const C=v=>getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+  // fill: green above the zero line, red below it
+  const greenSoft=C('--earned-soft'), redSoft=C('--used-soft');
+  const fillGrad=ctx=>{
+    const ch=ctx.chart, area=ch.chartArea; if(!area) return greenSoft;
+    const zeroPx=ch.scales.y.getPixelForValue(0);
+    let z=(zeroPx-area.top)/(area.bottom-area.top); z=Math.max(0,Math.min(1,z));
+    const g=ch.ctx.createLinearGradient(0,area.top,0,area.bottom);
+    g.addColorStop(0, z<=0?redSoft:greenSoft);
+    if(z>0&&z<1){g.addColorStop(z,greenSoft); g.addColorStop(z,redSoft);}
+    g.addColorStop(1, z>=1?greenSoft:redSoft);
+    return g;
+  };
   const datasets=[];
   if(isFinite(d.cap)) datasets.push({label:'cap',data:[{x:0,y:d.cap},{x:maxDay,y:d.cap}],
     borderColor:C('--cap'),borderWidth:1.5,borderDash:[6,5],pointRadius:0,fill:false,tension:0,order:4});
   datasets.push({label:'Balance',data:line,stepped:true,borderColor:C('--earned'),borderWidth:2.4,
-    pointRadius:0,fill:true,backgroundColor:C('--earned-soft'),order:3});
+    pointRadius:0,fill:{value:0},backgroundColor:fillGrad,order:3,
+    segment:{borderColor:s=>(s.p0.parsed.y<0||s.p1.parsed.y<0)?C('--used'):C('--earned')}});
   if(holPts.length) datasets.push({label:'Holiday used',data:holPts,type:'scatter',showLine:false,
     pointStyle:'rectRot',pointRadius:5,pointHoverRadius:7,backgroundColor:C('--used'),
     borderColor:'#fff',borderWidth:1.4,order:1});
@@ -581,9 +604,7 @@ tierSel.addEventListener('change',()=>{
   render();
 });
 ['bal','date','hours','cap','hz'].forEach(id=>$(id).addEventListener('change',render));
-const syncToggle=()=>$('holToggle').classList.toggle('on',$('hol').checked);
-$('hol').addEventListener('change',()=>{syncToggle();render();});
-syncToggle();
+$('hol').addEventListener('change',render);
 $('go').addEventListener('click',render);
 
 // init: prefill cap for default tier, draw
