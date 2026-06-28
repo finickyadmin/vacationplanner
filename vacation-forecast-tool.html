@@ -9,609 +9,541 @@
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <style>
-  :root{
-    --paper:#E9EDF1; --card:#FBFCFD; --ink:#16212E; --ink-soft:#5C6776;
-    --earned:#0E7C66; --earned-soft:rgba(14,124,102,.12);
-    --used:#C2563B; --cap:#B98A22; --grid:#DCE1E7; --hair:#E5E9EE;
-    --vac:#4F6D9E; --vac-soft:rgba(79,109,158,.12); --used-soft:rgba(194,86,59,.16);
-  }
   *{box-sizing:border-box;margin:0;padding:0}
-  body{
-    background:var(--paper); color:var(--ink);
-    font-family:'Inter',system-ui,sans-serif; -webkit-font-smoothing:antialiased;
-    padding:28px 18px 56px; line-height:1.45;
-  }
-  .wrap{max-width:920px;margin:0 auto}
-  .eyebrow{font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.22em;
-    text-transform:uppercase;color:var(--earned);font-weight:600;margin-bottom:10px}
-  h1{font-family:'Space Grotesk',sans-serif;font-weight:600;letter-spacing:-.02em;
-    font-size:clamp(26px,5.4vw,40px);line-height:1.05}
-  .sub{color:var(--ink-soft);font-size:14px;margin-top:9px;max-width:64ch}
-  .sub b{color:var(--ink);font-weight:600}
-
-  /* controls */
-  .controls{background:var(--card);border:1px solid var(--hair);border-radius:14px;
-    padding:20px 18px;margin:24px 0 22px}
-  .controls h2{font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.18em;
-    text-transform:uppercase;color:var(--ink-soft);font-weight:600;margin-bottom:16px}
-  .grid{display:grid;grid-template-columns:repeat(12,1fr);gap:14px}
-  .field{display:flex;flex-direction:column;gap:7px}
-  .field.bal{grid-column:span 3} .field.date{grid-column:span 3}
-  .field.hours{grid-column:span 3} .field.cap{grid-column:span 3}
-  .field.tier{grid-column:span 6} .field.hz{grid-column:span 3} .field.hol{grid-column:span 12;align-items:flex-start}
-  label{font-family:'IBM Plex Mono',monospace;font-size:10.5px;letter-spacing:.1em;
-    text-transform:uppercase;color:var(--ink-soft);font-weight:500}
-  input,select{font-family:'IBM Plex Mono',monospace;font-size:14px;color:var(--ink);
-    background:#fff;border:1px solid var(--grid);border-radius:9px;padding:11px 12px;width:100%;
-    text-align:center;appearance:none;-webkit-appearance:none}
-  select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%235C6776' d='M6 8 0 0h12z'/%3E%3C/svg%3E");
-    background-repeat:no-repeat;background-position:right 13px center;padding-left:32px;padding-right:32px;cursor:pointer;text-align-last:center}
-  input:focus,select:focus{outline:none;border-color:var(--earned);box-shadow:0 0 0 3px var(--earned-soft)}
-  input[readonly]{background:var(--paper);color:var(--ink);cursor:default}
-  input[readonly]:focus{border-color:var(--grid);box-shadow:none}
-  .hint{font-size:10px;color:var(--ink-soft);font-family:'Inter',sans-serif;margin-top:-1px}
-  .switch{display:inline-flex;align-items:center;gap:11px;cursor:pointer;user-select:none}
-  .switch input{position:absolute;opacity:0;width:0;height:0}
-  .switch .track{position:relative;flex:0 0 auto;width:42px;height:24px;border-radius:12px;
-    background:var(--grid);transition:background .15s}
-  .switch .thumb{position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;
-    background:#fff;box-shadow:0 1px 2px rgba(22,33,46,.25);transition:transform .15s}
-  .switch input:checked + .track{background:var(--earned)}
-  .switch input:checked + .track .thumb{transform:translateX(18px)}
-  .switch input:focus-visible + .track{outline:2px solid var(--ink);outline-offset:2px}
-  .switch .txt{font-family:'Inter',sans-serif;font-size:13px;color:var(--ink);
-    text-transform:none;letter-spacing:normal;font-weight:400}
-  .row2{display:flex;gap:12px;align-items:center;margin-top:16px;flex-wrap:wrap}
-  button{font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:14px;color:#fff;
-    background:var(--earned);border:none;border-radius:9px;padding:12px 22px;cursor:pointer;letter-spacing:-.01em}
-  button:hover{background:#0a6b58} button:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
-  .readout{font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--ink-soft)}
-  .readout b{color:var(--earned);font-weight:600}
-
-  /* stat tiles */
-  .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:0 0 22px}
-  .tile{background:var(--card);border:1px solid var(--hair);border-radius:12px;
-    padding:15px 16px 16px;position:relative;overflow:hidden}
-  .tile::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--accent,var(--earned))}
-  .tile .k{font-family:'IBM Plex Mono',monospace;font-size:10.5px;letter-spacing:.12em;
-    text-transform:uppercase;color:var(--ink-soft);margin-bottom:9px}
-  .tile .v{font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:27px;letter-spacing:-.02em;line-height:1}
-  .tile .u{font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--ink-soft);margin-top:6px}
-  .tile.b{--accent:var(--used)} .tile.c{--accent:var(--cap)} .tile.d{--accent:var(--ink)}
-
-  /* chart */
-  .panel{background:var(--card);border:1px solid var(--hair);border-radius:14px;padding:20px 18px 14px}
-  .panel-head{display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:8px;margin-bottom:4px}
-  .panel-head h2{font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:16px;letter-spacing:-.01em}
-  .legend{display:flex;gap:16px;flex-wrap:wrap;font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--ink-soft)}
-  .legend span{display:inline-flex;align-items:center;gap:6px}
-  .dot{width:10px;height:10px;border-radius:2px;display:inline-block}
-  .dot.e{background:var(--earned)} .dot.u{background:var(--used);transform:rotate(45deg)}
-  .dot.c{width:14px;height:0;border-top:2px dashed var(--cap)}
-  #capLegend.off{display:none}
-  .chart-box{position:relative;height:340px;margin-top:8px}
-
-  /* table */
-  .ledger{margin-top:26px}
-  .ledger h2{font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:16px;margin-bottom:12px}
-  .scroll{overflow-x:auto;border:1px solid var(--hair);border-radius:12px;background:var(--card)}
-  table{border-collapse:collapse;width:100%;min-width:640px;font-family:'IBM Plex Mono',monospace;font-size:12.5px}
-  thead th{text-align:right;font-weight:500;color:var(--ink-soft);font-size:10.5px;letter-spacing:.08em;
-    text-transform:uppercase;padding:12px 14px;border-bottom:1.5px solid var(--ink);white-space:nowrap}
-  thead th:first-child,tbody td:first-child{text-align:left}
-  tbody td{padding:10px 14px;text-align:right;border-bottom:1px solid var(--hair);white-space:nowrap}
-  tbody tr:last-child td{border-bottom:none}
-  tbody tr.hol{background:rgba(194,86,59,.045)}
-  tbody tr:hover{background:rgba(14,124,102,.05)}
-  .bal{font-weight:600;color:var(--ink)}
-  .pos{color:var(--earned)} .neg{color:var(--used)}
-  .tag{font-family:'Inter',sans-serif;font-size:10px;color:var(--used);font-weight:500}
-  tfoot td{padding:11px 14px;font-weight:600;color:var(--ink);border-top:1.5px solid var(--ink);text-align:right}
-  tfoot td:first-child{text-align:left}
-
-  .notes{margin-top:22px;font-size:12px;color:var(--ink-soft);line-height:1.65}
-  .notes b{color:var(--ink);font-family:'IBM Plex Mono',monospace;font-weight:500}
-  .notes .row{margin-bottom:5px;padding-left:17px;text-indent:-17px}
-  .notes .row::before{content:'— ';color:var(--earned)}
-
-  /* what-if vacation card */
-  .whatif{background:var(--card);border:1px solid var(--hair);border-radius:14px;
-    padding:20px 18px;margin:0 0 22px}
-  .whatif .head{display:flex;align-items:baseline;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:6px}
-  .whatif h2{font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.18em;
-    text-transform:uppercase;color:var(--vac);font-weight:600}
-  .whatif .lead{font-size:12.5px;color:var(--ink-soft);margin-bottom:14px}
-  .vac-row{display:grid;grid-template-columns:1fr 1fr 110px 38px;gap:10px;align-items:end;margin-bottom:10px}
-  .vac-row .f{display:flex;flex-direction:column;gap:6px}
-  .vac-row label{font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.08em;
-    text-transform:uppercase;color:var(--ink-soft)}
-  .vac-row input{font-family:'IBM Plex Mono',monospace;font-size:13.5px;color:var(--ink);
-    background:#fff;border:1px solid var(--grid);border-radius:8px;padding:10px 11px;width:100%}
-  .vac-row input:focus{outline:none;border-color:var(--vac);box-shadow:0 0 0 3px var(--vac-soft)}
-  .vac-del{height:40px;border:1px solid var(--grid);background:#fff;border-radius:8px;color:var(--used);
-    font-size:17px;cursor:pointer;line-height:1;padding:0}
-  .vac-del:hover{background:rgba(194,86,59,.07);border-color:var(--used)}
-  .vac-empty{font-size:12.5px;color:var(--ink-soft);font-style:italic;margin-bottom:14px}
-  .addvac{font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:13px;color:var(--vac);
-    background:var(--vac-soft);border:1px solid transparent;border-radius:8px;padding:9px 16px;cursor:pointer}
-  .addvac:hover{border-color:var(--vac)}
-  .vac-sum{font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--vac);margin-top:12px}
-  .dot.v{background:var(--vac);transform:rotate(45deg)}
-
-  @media(max-width:680px){
-    .field.bal,.field.date,.field.hours,.field.tier,.field.cap,.field.hz,.field.hol{grid-column:span 12}
-    .stats{grid-template-columns:repeat(2,1fr)}
-    .chart-box{height:300px}
-    .vac-row{grid-template-columns:1fr 1fr;gap:9px}
-    .vac-row .f.hpd{grid-column:1} .vac-del{grid-column:2;justify-self:end;width:44px}
-  }
+  body{background:#E9EDF1;color:#16212E;font-family:'Inter',system-ui,sans-serif;-webkit-font-smoothing:antialiased;line-height:1.45}
+  input[type=number]::-webkit-inner-spin-button,input[type=number]::-webkit-outer-spin-button{appearance:none;-webkit-appearance:none;margin:0}
+  input:focus,select:focus{outline:none;border-color:#0E7C66;box-shadow:0 0 0 3px rgba(14,124,102,.12)}
+  input[readonly]:focus{border-color:#DCE1E7;box-shadow:none}
+  #addVac:hover{border-color:#4F6D9E}
 </style>
 </head>
 <body>
-<div class="wrap">
-  <div class="eyebrow">Vacation Accrual · Self-Serve Forecast</div>
-  <h1>Project your banked vacation</h1>
-  <p class="sub">Enter your balance, last pay-period date, accrual tier, and average hours per period. The tool projects your accrued vacation over the chosen horizon, assuming <b>no vacation is taken</b> beyond the six standard holidays. Accrual is <b>bi-weekly</b> — vacation earned each period is your hours worked × the tier rate.</p>
+<div style="max-width:1180px;margin:0 auto;padding:26px 22px 64px">
 
-  <div class="controls">
-    <h2>Your details</h2>
-    <div class="grid">
-      <div class="field bal">
-        <label for="bal">Current balance (hrs)</label>
-        <input id="bal" type="number" inputmode="decimal" step="0.01" value="0">
+  <!-- COMPACT HEADER -->
+  <div style="display:flex;justify-content:space-between;align-items:flex-end;gap:18px;flex-wrap:wrap;margin-bottom:22px">
+    <div>
+      <div style="font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.22em;text-transform:uppercase;color:#0E7C66;font-weight:600;margin-bottom:9px">Vacation Accrual &middot; Self-Serve Forecast</div>
+      <h1 style="font-family:'Space Grotesk',sans-serif;font-weight:600;letter-spacing:-.02em;font-size:clamp(24px,4vw,34px);line-height:1.05">Project your banked vacation</h1>
+    </div>
+    <p style="color:#5C6776;font-size:12.5px;max-width:42ch;line-height:1.55">Bi-weekly accrual = hours worked &times; your tier rate. Assumes no time off beyond the holidays and vacation you add at left.</p>
+  </div>
+
+  <!-- TWO-PANE WORKSPACE -->
+  <div style="display:flex;flex-wrap:wrap;gap:22px;align-items:flex-start">
+
+    <!-- LEFT RAIL -->
+    <div style="flex:1 1 330px;max-width:372px;position:sticky;top:22px;align-self:flex-start;display:flex;flex-direction:column;gap:14px">
+
+      <!-- inputs card -->
+      <div style="background:#FBFCFD;border:1px solid #E5E9EE;border-radius:14px;padding:18px 16px">
+        <div style="font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:#5C6776;font-weight:600;margin-bottom:15px">Your details</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:13px">
+          <div style="display:flex;flex-direction:column;gap:7px">
+            <label for="bal" style="font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.09em;text-transform:uppercase;color:#5C6776;font-weight:500">Current bal (hrs)</label>
+            <input id="bal" type="number" inputmode="decimal" step="0.01" value="0" style="font-family:'IBM Plex Mono',monospace;font-size:14px;color:#16212E;background:#fff;border:1px solid #DCE1E7;border-radius:9px;padding:11px 10px;width:100%;text-align:center;appearance:none;-webkit-appearance:none">
+          </div>
+          <div style="display:flex;flex-direction:column;gap:7px">
+            <label for="date" style="font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.09em;text-transform:uppercase;color:#5C6776;font-weight:500">Last period end</label>
+            <input id="date" type="date" value="2026-06-26" style="font-family:'IBM Plex Mono',monospace;font-size:13px;color:#16212E;background:#fff;border:1px solid #DCE1E7;border-radius:9px;padding:10px;width:100%;text-align:center;appearance:none;-webkit-appearance:none">
+          </div>
+          <div style="display:flex;flex-direction:column;gap:7px">
+            <label for="hours" style="font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.09em;text-transform:uppercase;color:#5C6776;font-weight:500">Avg hrs / period</label>
+            <input id="hours" type="number" inputmode="decimal" step="0.5" value="80" style="font-family:'IBM Plex Mono',monospace;font-size:14px;color:#16212E;background:#fff;border:1px solid #DCE1E7;border-radius:9px;padding:11px 10px;width:100%;text-align:center;appearance:none;-webkit-appearance:none">
+            <div style="font-size:9.5px;color:#5C6776">80 = 40 hrs/wk</div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:7px">
+            <label for="hz" style="font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.09em;text-transform:uppercase;color:#5C6776;font-weight:500">Horizon</label>
+            <div style="position:relative">
+              <select id="hz" style="font-family:'IBM Plex Mono',monospace;font-size:13px;color:#16212E;background:#fff;border:1px solid #DCE1E7;border-radius:9px;padding:11px 28px 11px 12px;width:100%;text-align:center;text-align-last:center;appearance:none;-webkit-appearance:none;cursor:pointer">
+                <option value="6" selected>6 months</option>
+                <option value="12">12 months</option>
+                <option value="18">18 months</option>
+                <option value="24">24 months</option>
+              </select>
+              <span style="position:absolute;right:12px;top:50%;transform:translateY(-50%);pointer-events:none;color:#5C6776;font-size:9px">&#9660;</span>
+            </div>
+          </div>
+          <div style="grid-column:span 2;display:flex;flex-direction:column;gap:7px">
+            <label for="tier" style="font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.09em;text-transform:uppercase;color:#5C6776;font-weight:500">Accrual rate</label>
+            <div style="position:relative">
+              <select id="tier" style="font-family:'IBM Plex Mono',monospace;font-size:13px;color:#16212E;background:#fff;border:1px solid #DCE1E7;border-radius:9px;padding:11px 28px 11px 12px;width:100%;text-align:center;text-align-last:center;appearance:none;-webkit-appearance:none;cursor:pointer"></select>
+              <span style="position:absolute;right:12px;top:50%;transform:translateY(-50%);pointer-events:none;color:#5C6776;font-size:9px">&#9660;</span>
+            </div>
+          </div>
+          <div style="grid-column:span 2;display:flex;flex-direction:column;gap:7px">
+            <label for="cap" style="font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.09em;text-transform:uppercase;color:#5C6776;font-weight:500">Max balance (hrs) &middot; set by tier</label>
+            <input id="cap" type="number" inputmode="decimal" step="1" placeholder="none" readonly style="font-family:'IBM Plex Mono',monospace;font-size:14px;color:#16212E;background:#E9EDF1;border:1px solid #DCE1E7;border-radius:9px;padding:11px 10px;width:100%;text-align:center;appearance:none;-webkit-appearance:none">
+          </div>
+          <div id="holToggle" style="grid-column:span 2;display:flex;align-items:center;gap:11px;cursor:pointer;user-select:none;margin-top:2px">
+            <input id="hol" type="checkbox" style="position:absolute;opacity:0;width:0;height:0">
+            <span id="holTrack" style="position:relative;flex:0 0 auto;width:42px;height:24px;border-radius:12px;background:#0E7C66;transition:background .15s">
+              <span id="holThumb" style="position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:#fff;box-shadow:0 1px 2px rgba(22,33,46,.25);transition:transform .15s;transform:translateX(18px)"></span>
+            </span>
+            <span style="font-size:12.5px;color:#16212E;line-height:1.35">Include the 6 standard holidays as days off <span style="color:#5C6776">(&minus;8 hrs, no accrual)</span></span>
+          </div>
+        </div>
       </div>
-      <div class="field date">
-        <label for="date">Last pay period end</label>
-        <input id="date" type="date" value="2026-06-26">
+
+      <!-- rate strip -->
+      <div style="background:#FBFCFD;border:1px solid #E5E9EE;border-radius:12px;padding:13px 15px">
+        <div style="font-family:'IBM Plex Mono',monospace;font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:#5C6776;margin-bottom:6px">Accrual math</div>
+        <span id="rateRead" style="font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:#5C6776;line-height:1.6"></span>
       </div>
-      <div class="field hours">
-        <label for="hours">Avg hrs / pay period</label>
-        <input id="hours" type="number" inputmode="decimal" step="0.5" value="80">
-        <div class="hint">Bi-weekly. 80 = 40 hrs/wk.</div>
-      </div>
-      <div class="field hz">
-        <label for="hz">Horizon</label>
-        <select id="hz">
-          <option value="6" selected>6 months</option>
-          <option value="12">12 months</option>
-          <option value="18">18 months</option>
-          <option value="24">24 months</option>
-        </select>
-      </div>
-      <div class="field tier">
-        <label for="tier">Accrual rate</label>
-        <select id="tier"></select>
-      </div>
-      <div class="field cap">
-        <label for="cap">Max balance (hrs)</label>
-        <input id="cap" type="number" inputmode="decimal" step="1" placeholder="none" readonly>
-        <div class="hint">Set by your accrual tier.</div>
-      </div>
-      <div class="field hol">
-        <label>Holidays</label>
-        <label class="switch" id="holToggle">
-          <input id="hol" type="checkbox" checked>
-          <span class="track"><span class="thumb"></span></span>
-          <span class="txt">Include the 6 standard holidays as days off (−8 hrs used, no accrual)</span>
-        </label>
+
+      <!-- collapsible planned vacation -->
+      <div style="background:#FBFCFD;border:1px solid #E5E9EE;border-radius:14px;overflow:hidden">
+        <div id="vacHead" style="display:flex;align-items:center;gap:10px;padding:15px 16px;cursor:pointer;user-select:none">
+          <span id="vacChev" style="color:#4F6D9E;font-size:10px;transition:transform .15s;display:inline-block">&#9654;</span>
+          <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:#4F6D9E;font-weight:600">What-if &middot; Planned Vacation</span>
+          <span id="vacCount" style="margin-left:auto;font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:#5C6776">optional</span>
+        </div>
+        <div id="vacBody" style="display:none;padding:0 16px 16px">
+          <div style="font-size:11.5px;color:#5C6776;margin-bottom:13px;line-height:1.5">Add time-off periods. Weekdays in each range draw down your balance and earn no accrual; holidays inside a range are skipped.</div>
+          <div id="vacRows"></div>
+          <div id="vacEmpty" style="font-size:12px;color:#5C6776;font-style:italic;margin-bottom:13px">No vacation planned yet.</div>
+          <button id="addVac" style="font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:13px;color:#4F6D9E;background:rgba(79,109,158,.12);border:1px solid transparent;border-radius:8px;padding:9px 16px;cursor:pointer">+ Add vacation period</button>
+          <div style="font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:#4F6D9E;margin-top:12px" id="vacSum"></div>
+        </div>
       </div>
     </div>
-    <div class="row2">
-      <button id="go">Update forecast</button>
-      <span class="readout" id="rateRead"></span>
-    </div>
-  </div>
 
-  <div class="whatif">
-    <div class="head"><h2>What-if · Planned Vacation</h2></div>
-    <div class="lead">Add one or more time-off periods. Weekdays in each range draw down your balance and earn no accrual (holidays inside a range are skipped, since they're already counted).</div>
-    <div id="vacRows"></div>
-    <div id="vacEmpty" class="vac-empty">No vacation planned — the forecast assumes no time off taken.</div>
-    <button class="addvac" id="addVac">+ Add vacation period</button>
-    <div class="vac-sum" id="vacSum"></div>
-  </div>
+    <!-- RIGHT RESULTS PANE -->
+    <div style="flex:1 1 470px;display:flex;flex-direction:column;gap:14px;min-width:0">
 
-  <div class="stats">
-    <div class="tile"><div class="k">Current Balance</div><div class="v" id="s1v">—</div><div class="u" id="s1u"></div></div>
-    <div class="tile d"><div class="k" id="s2k">Projected End</div><div class="v" id="s2v">—</div><div class="u" id="s2u"></div></div>
-    <div class="tile b"><div class="k">Net Change</div><div class="v" id="s3v">—</div><div class="u" id="s3u"></div></div>
-    <div class="tile c"><div class="k">Headroom to Cap</div><div class="v" id="s4v">—</div><div class="u" id="s4u"></div></div>
-  </div>
+      <!-- hero + supporting tiles -->
+      <div style="display:flex;flex-wrap:wrap;gap:12px">
+        <div style="flex:1 1 230px;background:#FBFCFD;border:1px solid #E5E9EE;border-radius:14px;padding:18px 20px;position:relative;overflow:hidden">
+          <span style="position:absolute;left:0;top:0;bottom:0;width:4px;background:#0E7C66"></span>
+          <div style="font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:#5C6776;margin-bottom:10px" id="s2k">Projected End</div>
+          <div style="display:flex;align-items:baseline;gap:10px">
+            <div style="font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:52px;letter-spacing:-.02em;line-height:.95;color:#0E7C66" id="s2v">&mdash;</div>
+            <div style="font-family:'IBM Plex Mono',monospace;font-size:13px;color:#5C6776" id="s2u"></div>
+          </div>
+        </div>
+        <div style="flex:1 1 320px;display:grid;grid-template-columns:repeat(3,1fr);gap:10px">
+          <div style="background:#FBFCFD;border:1px solid #E5E9EE;border-radius:12px;padding:13px 13px 14px;position:relative;overflow:hidden">
+            <span style="position:absolute;left:0;top:0;bottom:0;width:3px;background:#5C6776"></span>
+            <div style="font-family:'IBM Plex Mono',monospace;font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:#5C6776;margin-bottom:8px">Current</div>
+            <div style="font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:22px;letter-spacing:-.02em;line-height:1" id="s1v">&mdash;</div>
+            <div style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:#5C6776;margin-top:5px" id="s1u"></div>
+          </div>
+          <div style="background:#FBFCFD;border:1px solid #E5E9EE;border-radius:12px;padding:13px 13px 14px;position:relative;overflow:hidden">
+            <span style="position:absolute;left:0;top:0;bottom:0;width:3px;background:#C2563B"></span>
+            <div style="font-family:'IBM Plex Mono',monospace;font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:#5C6776;margin-bottom:8px">Net Change</div>
+            <div style="font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:22px;letter-spacing:-.02em;line-height:1" id="s3v">&mdash;</div>
+            <div style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:#5C6776;margin-top:5px" id="s3u"></div>
+          </div>
+          <div style="background:#FBFCFD;border:1px solid #E5E9EE;border-radius:12px;padding:13px 13px 14px;position:relative;overflow:hidden">
+            <span style="position:absolute;left:0;top:0;bottom:0;width:3px;background:#B98A22"></span>
+            <div style="font-family:'IBM Plex Mono',monospace;font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:#5C6776;margin-bottom:8px">Headroom</div>
+            <div style="font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:22px;letter-spacing:-.02em;line-height:1" id="s4v">&mdash;</div>
+            <div style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:#5C6776;margin-top:5px" id="s4u"></div>
+          </div>
+        </div>
+      </div>
 
-  <div class="panel">
-    <div class="panel-head">
-      <h2>Balance staircase</h2>
-      <div class="legend">
-        <span><i class="dot e"></i>Accrual</span>
-        <span id="holLegend"><i class="dot u"></i>Holiday used (−8)</span>
-        <span id="vacLegend"><i class="dot v"></i>Vacation used</span>
-        <span id="capLegend"><i class="dot c"></i><span id="capLegendTxt">Max cap</span></span>
+      <!-- chart -->
+      <div style="background:#FBFCFD;border:1px solid #E5E9EE;border-radius:14px;padding:18px 16px 12px">
+        <div style="display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:8px;margin-bottom:4px">
+          <h2 style="font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:16px;letter-spacing:-.01em">Balance staircase</h2>
+          <div style="display:flex;gap:15px;flex-wrap:wrap;font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:#5C6776">
+            <span style="display:inline-flex;align-items:center;gap:6px"><i style="width:10px;height:10px;border-radius:2px;background:#0E7C66"></i>Accrual</span>
+            <span id="holLegend" style="display:inline-flex;align-items:center;gap:6px"><i style="width:9px;height:9px;background:#C2563B;transform:rotate(45deg)"></i>Holiday (&minus;8)</span>
+            <span id="vacLegend" style="display:inline-flex;align-items:center;gap:6px"><i style="width:9px;height:9px;background:#4F6D9E;transform:rotate(45deg)"></i>Vacation</span>
+            <span id="capLegend" style="display:none;align-items:center;gap:6px"><i style="width:14px;height:0;border-top:2px dashed #B98A22"></i><span id="capLegendTxt">Max cap</span></span>
+          </div>
+        </div>
+        <div style="position:relative;height:360px;margin-top:8px"><canvas id="chart"></canvas></div>
       </div>
     </div>
-    <div class="chart-box"><canvas id="chart"></canvas></div>
   </div>
 
-  <div class="ledger">
-    <h2>Month-by-month ledger</h2>
-    <div class="scroll">
-      <table>
-        <thead><tr><th>Month</th><th>Accrued</th><th>Holiday Used</th><th>Vacation Used</th><th>End Balance</th><th>Days</th></tr></thead>
+  <!-- FULL-WIDTH LEDGER -->
+  <div style="margin-top:26px">
+    <h2 style="font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:16px;margin-bottom:12px">Month-by-month ledger</h2>
+    <div style="overflow-x:auto;border:1px solid #E5E9EE;border-radius:12px;background:#FBFCFD">
+      <table style="border-collapse:collapse;width:100%;min-width:640px;font-family:'IBM Plex Mono',monospace;font-size:12.5px">
+        <thead><tr>
+          <th style="text-align:left;font-weight:500;color:#5C6776;font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;padding:12px 14px;border-bottom:1.5px solid #16212E;white-space:nowrap">Month</th>
+          <th style="text-align:right;font-weight:500;color:#5C6776;font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;padding:12px 14px;border-bottom:1.5px solid #16212E;white-space:nowrap">Accrued</th>
+          <th style="text-align:right;font-weight:500;color:#5C6776;font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;padding:12px 14px;border-bottom:1.5px solid #16212E;white-space:nowrap">Holiday Used</th>
+          <th style="text-align:right;font-weight:500;color:#5C6776;font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;padding:12px 14px;border-bottom:1.5px solid #16212E;white-space:nowrap">Vacation Used</th>
+          <th style="text-align:right;font-weight:500;color:#5C6776;font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;padding:12px 14px;border-bottom:1.5px solid #16212E;white-space:nowrap">End Balance</th>
+          <th style="text-align:right;font-weight:500;color:#5C6776;font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;padding:12px 14px;border-bottom:1.5px solid #16212E;white-space:nowrap">Days</th>
+        </tr></thead>
         <tbody id="tbody"></tbody>
-        <tfoot><tr><td>Total</td><td class="pos" id="tAcc"></td><td class="neg" id="tHol"></td><td class="neg" id="tVac"></td><td id="tBal"></td><td id="tDays"></td></tr></tfoot>
+        <tfoot><tr>
+          <td style="padding:11px 14px;font-weight:600;color:#16212E;border-top:1.5px solid #16212E;text-align:left">Total</td>
+          <td style="padding:11px 14px;font-weight:600;border-top:1.5px solid #16212E;text-align:right;color:#0E7C66" id="tAcc"></td>
+          <td style="padding:11px 14px;font-weight:600;border-top:1.5px solid #16212E;text-align:right;color:#C2563B" id="tHol"></td>
+          <td style="padding:11px 14px;font-weight:600;border-top:1.5px solid #16212E;text-align:right;color:#C2563B" id="tVac"></td>
+          <td style="padding:11px 14px;font-weight:600;border-top:1.5px solid #16212E;text-align:right;color:#16212E" id="tBal"></td>
+          <td style="padding:11px 14px;font-weight:600;border-top:1.5px solid #16212E;text-align:right;color:#16212E" id="tDays"></td>
+        </tr></tfoot>
       </table>
     </div>
+    <div style="margin-top:18px;font-size:12px;color:#5C6776;line-height:1.65" id="notes"></div>
   </div>
 
-  <div class="notes" id="notes"></div>
 </div>
 
 <script>
-const TIERS=[
-  {label:"New hire · <1 yr · Full-time", rate:0.0654, maxDays:null},
-  {label:"New hire · <1 yr · Part-time", rate:0.0847, maxDays:null},
-  {label:"Current · <1 yr", rate:0.0847, maxDays:null},
-  {label:"Current · 2nd year", rate:0.0924, maxDays:null},
-  {label:"Current · 3rd year+", rate:0.1116, maxDays:58},
-  {label:"Current · 10th year+", rate:0.1308, maxDays:68},
-];
-const capHrs=t=>t.maxDays==null?null:t.maxDays*8;  // cap derived from the rate's max-days parameter
-const MON=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-const $=id=>document.getElementById(id);
+(function(){
+  const COLORS={'--paper':'#E9EDF1','--card':'#FBFCFD','--ink':'#16212E','--ink-soft':'#5C6776','--earned':'#0E7C66','--earned-soft':'rgba(14,124,102,.12)','--used':'#C2563B','--used-soft':'rgba(194,86,59,.16)','--cap':'#B98A22','--grid':'#DCE1E7','--hair':'#E5E9EE','--vac':'#4F6D9E','--vac-soft':'rgba(79,109,158,.12)'};
+  const C=v=>COLORS[v];
+  const TIERS=[
+    {label:"New hire \u00b7 <1 yr \u00b7 Full-time", rate:0.0654, maxDays:null},
+    {label:"New hire \u00b7 <1 yr \u00b7 Part-time", rate:0.0847, maxDays:null},
+    {label:"Current \u00b7 <1 yr", rate:0.0847, maxDays:null},
+    {label:"Current \u00b7 2nd year", rate:0.0924, maxDays:null},
+    {label:"Current \u00b7 3rd year+", rate:0.1116, maxDays:58},
+    {label:"Current \u00b7 10th year+", rate:0.1308, maxDays:68},
+  ];
+  const capHrs=t=>t.maxDays==null?null:t.maxDays*8;
+  const MON=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const $=id=>document.getElementById(id);
 
-// populate tier dropdown
-const tierSel=$('tier');
-TIERS.forEach((t,i)=>{
-  const o=document.createElement('option');
-  o.value=i; o.textContent=`${t.label} · ${t.rate}`;
-  tierSel.appendChild(o);
-});
-tierSel.value=4; // default: 3rd Year+, matches example
+  const tierSel=$('tier');
+  TIERS.forEach((t,i)=>{const o=document.createElement('option');o.value=i;o.textContent=t.label+" \u00b7 "+t.rate;tierSel.appendChild(o);});
+  tierSel.value=4;
 
-// ---- date helpers ----
-const parseDate=s=>{const[a,b,c]=s.split('-').map(Number);return new Date(a,b-1,c);};
-const addDays=(d,n)=>{const x=new Date(d);x.setDate(x.getDate()+n);return x;};
-const dayIdx=(d,start)=>Math.round((d-start)/86400000);
-const lastMonday=(y,m)=>{const d=new Date(y,m+1,0);while(d.getDay()!==1)d.setDate(d.getDate()-1);return d;};
-const firstMonday=(y,m)=>{const d=new Date(y,m,1);while(d.getDay()!==1)d.setDate(d.getDate()+1);return d;};
-const thanksgiving=y=>{const d=new Date(y,10,1);while(d.getDay()!==4)d.setDate(d.getDate()+1);d.setDate(d.getDate()+21);return d;};
+  const parseDate=s=>{const[a,b,c]=s.split('-').map(Number);return new Date(a,b-1,c);};
+  const addDays=(d,n)=>{const x=new Date(d);x.setDate(x.getDate()+n);return x;};
+  const dayIdx=(d,start)=>Math.round((d-start)/86400000);
+  const lastMonday=(y,m)=>{const d=new Date(y,m+1,0);while(d.getDay()!==1)d.setDate(d.getDate()-1);return d;};
+  const firstMonday=(y,m)=>{const d=new Date(y,m,1);while(d.getDay()!==1)d.setDate(d.getDate()+1);return d;};
+  const thanksgiving=y=>{const d=new Date(y,10,1);while(d.getDay()!==4)d.setDate(d.getDate()+1);d.setDate(d.getDate()+21);return d;};
 
-function holidaysInWindow(start,end){
-  const res=[];
-  for(let y=start.getFullYear();y<=end.getFullYear();y++){
-    const list=[
-      ["New Year's Day",new Date(y,0,1)],
-      ["Memorial Day",lastMonday(y,4)],
-      ["Independence Day",new Date(y,6,4)],
-      ["Labor Day",firstMonday(y,8)],
-      ["Thanksgiving",thanksgiving(y)],
-      ["Christmas",new Date(y,11,25)],
-    ];
-    for(const [n,d] of list) if(d>start && d<=end) res.push({date:d,name:n});
-  }
-  res.sort((a,b)=>a.date-b.date);
-  return res;
-}
-
-const sameDay=(a,b)=>a.getFullYear()===b.getFullYear()&&a.getMonth()===b.getMonth()&&a.getDate()===b.getDate();
-// weekdays in [vStart,vEnd] that aren't holidays — these are the days vacation is actually used
-function vacationDays(vStart,vEnd,hpd,holDates){
-  const days=[];
-  let d=new Date(vStart);
-  while(d<=vEnd){
-    const dow=d.getDay();
-    if(dow!==0&&dow!==6&&!holDates.some(h=>sameDay(h,d))) days.push({date:new Date(d),hours:hpd});
-    d.setDate(d.getDate()+1);
-  }
-  return days;
-}
-
-// ---- vacation row management ----
-const vacRows=$('vacRows');
-function addVacRow(s='',e='',h=8){
-  const row=document.createElement('div');
-  row.className='vac-row';
-  row.innerHTML=`
-    <div class="f"><label>Start date</label><input type="date" class="vs" value="${s}"></div>
-    <div class="f"><label>End date</label><input type="date" class="ve" value="${e}"></div>
-    <div class="f hpd"><label>Hrs / day</label><input type="number" class="vh" inputmode="decimal" step="0.5" value="${h}"></div>
-    <button class="vac-del" title="Remove" aria-label="Remove vacation period">×</button>`;
-  const vs=row.querySelector('.vs'), ve=row.querySelector('.ve'), vh=row.querySelector('.vh');
-  const syncDates=()=>{ if(vs.value){ ve.min=vs.value; if(!ve.value||ve.value<vs.value) ve.value=vs.value; } };
-  vs.addEventListener('change',()=>{ syncDates(); render(); });
-  ve.addEventListener('change',()=>{ if(vs.value&&ve.value&&ve.value<vs.value) ve.value=vs.value; render(); });
-  vh.addEventListener('change',render);
-  row.querySelector('.vac-del').addEventListener('click',()=>{row.remove();render();});
-  if(s) syncDates();
-  vacRows.appendChild(row);
-}
-function readVacations(){
-  const out=[];
-  vacRows.querySelectorAll('.vac-row').forEach(r=>{
-    const sv=r.querySelector('.vs').value, ev=r.querySelector('.ve').value;
-    const hv=parseFloat(r.querySelector('.vh').value);
-    if(!sv||!ev) return;
-    const s=parseDate(sv), e=parseDate(ev);
-    if(e<s) return;
-    out.push({start:s,end:e,hpd:isNaN(hv)?8:hv});
-  });
-  return out;
-}
-$('addVac').addEventListener('click',()=>{addVacRow();});
-
-let chart=null;
-
-function compute(){
-  const start=parseDate($('date').value);
-  const startBal=parseFloat($('bal').value)||0;
-  const tier=TIERS[+tierSel.value];
-  const hpp=parseFloat($('hours').value)||80;
-  const ACC=hpp*tier.rate;
-  const capRaw=$('cap').value.trim();
-  const cap=capRaw===''?Infinity:(parseFloat(capRaw)||Infinity);
-  const useHol=$('hol').checked;
-  const months=+$('hz').value;
-  const end=new Date(start); end.setMonth(end.getMonth()+months);
-
-  // events
-  const hols=useHol?holidaysInWindow(start,end):[];
-  const holDates=hols.map(h=>h.date);
-  const events=[];
-
-  // vacation blocks → per-workday usage (weekdays, excluding holidays already counted)
-  const vacInput=readVacations();
-  const vacBlocks=[];        // {start, days:[{date,hours}], total, label}
-  const allVacDays=[];
-  vacInput.forEach(v=>{
-    const days=vacationDays(v.start,v.end,v.hpd,holDates).filter(x=>x.date>start&&x.date<=end);
-    if(!days.length) return;
-    const total=days.reduce((s,x)=>s+x.hours,0);
-    const lbl=`${MON[v.start.getMonth()]} ${v.start.getDate()}–${MON[v.end.getMonth()]} ${v.end.getDate()}`;
-    vacBlocks.push({start:v.start,total,label:lbl,nDays:days.length});
-    days.forEach(x=>allVacDays.push(x));
-  });
-  const vacHoursIn=(a,b)=>allVacDays.filter(x=>x.date>a&&x.date<=b).reduce((s,x)=>s+x.hours,0);
-
-  // accrual credited each pay-period end, based on hours actually WORKED:
-  // holiday AND vacation hours in a period aren't worked, so they earn no accrual
-  let pStart=new Date(start), pEnd=addDays(start,14);
-  while(pEnd<=end){
-    const holHrs=8*hols.filter(h=>h.date>pStart&&h.date<=pEnd).length;
-    const worked=Math.max(0,hpp-holHrs-vacHoursIn(pStart,pEnd));
-    events.push({date:new Date(pEnd),kind:'accrual',delta:worked*tier.rate,name:''});
-    pStart=new Date(pEnd); pEnd=addDays(pEnd,14);
-  }
-  hols.forEach(h=>events.push({date:h.date,kind:'holiday',delta:-8,name:h.name}));
-  vacBlocks.forEach(v=>events.push({date:v.start,kind:'vacation',delta:-v.total,name:v.label}));
-  events.sort((a,b)=>(a.date-b.date)||((a.kind==='accrual'?0:1)-(b.kind==='accrual'?0:1)));
-
-  // walk timeline
-  let bal=startBal, earned=0, holUsed=0, vacUsed=0;
-  const tl=[{date:new Date(start),bal,kind:'start',name:''}];
-  for(const e of events){
-    if(e.delta>0){const nb=Math.min(cap,bal+e.delta);earned+=nb-bal;bal=nb;}
-    else{bal+=e.delta;const drawn=-e.delta;          // allow negative: an unaffordable plan should show
-      if(e.kind==='holiday')holUsed+=drawn; else vacUsed+=drawn;}
-    tl.push({date:new Date(e.date),bal,kind:e.kind,name:e.name});
-  }
-  const endBal=bal, used=holUsed+vacUsed;
-  const trough=Math.min(...tl.map(p=>p.bal));
-
-  // monthly rollup
-  let my=start.getFullYear(),mm=start.getMonth();
-  const ey=end.getFullYear(),em=end.getMonth();
-  const monthsArr=[];
-  while(my<ey||(my===ey&&mm<=em)){monthsArr.push([my,mm]);mm++;if(mm>11){mm=0;my++;}}
-  let b=startBal,ei=0;const rows=[];
-  for(const [yy,mo] of monthsArr){
-    const me=new Date(yy,mo+1,0);let acc=0,hol=0,vac=0,names=[];
-    while(ei<events.length&&events[ei].date<=me){
-      const e=events[ei];
-      if(e.delta>0){const nb=Math.min(cap,b+e.delta);acc+=nb-b;b=nb;}
-      else{b+=e.delta;const drawn=-e.delta;
-        if(e.kind==='holiday'){hol+=drawn;names.push(e.name);} else vac+=drawn;}
-      ei++;
+  function holidaysInWindow(start,end){
+    const res=[];
+    for(let y=start.getFullYear();y<=end.getFullYear();y++){
+      const list=[
+        ["New Year's Day",new Date(y,0,1)],["Memorial Day",lastMonday(y,4)],
+        ["Independence Day",new Date(y,6,4)],["Labor Day",firstMonday(y,8)],
+        ["Thanksgiving",thanksgiving(y)],["Christmas",new Date(y,11,25)],
+      ];
+      for(const [n,d] of list) if(d>start && d<=end) res.push({date:d,name:n});
     }
-    rows.push({m:`${MON[mo]} ${yy}`,acc,hol,vac,names,bal:b,days:b/8});
+    res.sort((a,b)=>a.date-b.date);
+    return res;
+  }
+  const sameDay=(a,b)=>a.getFullYear()===b.getFullYear()&&a.getMonth()===b.getMonth()&&a.getDate()===b.getDate();
+  function vacationDays(vStart,vEnd,hpd,holDates){
+    const days=[];let d=new Date(vStart);
+    while(d<=vEnd){const dow=d.getDay();
+      if(dow!==0&&dow!==6&&!holDates.some(h=>sameDay(h,d))) days.push({date:new Date(d),hours:hpd});
+      d.setDate(d.getDate()+1);}
+    return days;
   }
 
-  return {start,end,startBal,endBal,earned,used,holUsed,vacUsed,tl,rows,cap,tier,ACC,months,hpp,trough,
-          holCount:hols.length,vacBlocks,vacDayCount:allVacDays.length,
-          peak:Math.max(...tl.map(p=>p.bal))};
-}
-
-function render(){
-  const d=compute();
-  const f1=x=>x.toFixed(1), r0=x=>Math.round(x);
-
-  // rate readout
-  $('rateRead').innerHTML=`<b>${d.tier.rate}</b>/hr × <b>${d.hpp}</b> hrs → <b>${d.ACC.toFixed(2)}</b> hrs/period → <b>${(d.tier.rate*d.hpp*26).toFixed(1)}</b> hrs (${f1(d.tier.rate*d.hpp*26/8)} days)/yr`;
-
-  // stat tiles
-  $('s1v').textContent=r0(d.startBal); $('s1u').textContent=`hrs · ${f1(d.startBal/8)} days`;
-  $('s2k').textContent=`Projected · ${d.months} mo`;
-  $('s2v').textContent=r0(d.endBal); $('s2u').textContent=`hrs · ${f1(d.endBal/8)} days`;
-  const net=d.endBal-d.startBal;
-  $('s3v').textContent=(net>=0?'+':'−')+r0(Math.abs(net));
-  let sub=`+${r0(d.earned)} earned`;
-  if(d.holUsed>0) sub+=` −${r0(d.holUsed)} hol`;
-  if(d.vacUsed>0) sub+=` −${r0(d.vacUsed)} vac`;
-  if(d.holUsed===0&&d.vacUsed===0) sub+=` · none used`;
-  $('s3u').textContent=sub;
-  if(isFinite(d.cap)){
-    const head=Math.max(0,d.cap-d.endBal);
-    $('s4v').textContent=head<=0?'0':r0(head);
-    $('s4u').textContent=head<=0?`at ${r0(d.cap)} hr cap`:`below ${r0(d.cap)} hr max`;
-  }else{$('s4v').textContent='—';$('s4u').textContent='no cap set';}
-
-  // chart datasets
-  const start=d.start;
-  const line=d.tl.map(p=>({x:dayIdx(p.date,start),y:p.bal}));
-  const holPts=d.tl.filter(p=>p.kind==='holiday').map(p=>({x:dayIdx(p.date,start),y:p.bal,name:p.name}));
-  const vacPts=d.tl.filter(p=>p.kind==='vacation').map(p=>({x:dayIdx(p.date,start),y:p.bal,name:p.name}));
-  const maxDay=dayIdx(d.end,start);
-  const top=isFinite(d.cap)?Math.max(d.peak,d.cap):d.peak;
-  let yMax=Math.max(80,Math.ceil(top*1.12/40)*40);
-  if(isFinite(d.cap)) yMax=Math.max(yMax,Math.ceil(d.cap/40)*40+40);
-  const yMin=d.trough<0?Math.floor(d.trough/40)*40-20:0;
-  const stepSize=(yMax-yMin)<=200?40:80;
-
-  // month ticks
-  const TICKS=[],TLAB={};
-  let ty=start.getFullYear(),tm=start.getMonth();
-  for(let i=0;i<=d.months+1;i++){
-    const dt=new Date(ty,tm,1);
-    if(dt>=start){const dv=dayIdx(dt,start);TICKS.push(dv);
-      TLAB[dv]=MON[tm]+" '"+String(ty).slice(2);}
-    tm++;if(tm>11){tm=0;ty++;}
+  const vacRows=$('vacRows');
+  const VINP="font-family:'IBM Plex Mono',monospace;font-size:13px;color:#16212E;background:#fff;border:1px solid #DCE1E7;border-radius:8px;padding:9px 10px;width:100%;appearance:none;-webkit-appearance:none";
+  const VLAB="font-family:'IBM Plex Mono',monospace;font-size:9.5px;letter-spacing:.07em;text-transform:uppercase;color:#5C6776";
+  function focusWire(inp){
+    inp.addEventListener('focus',()=>{inp.style.borderColor='#4F6D9E';inp.style.boxShadow='0 0 0 3px rgba(79,109,158,.12)';inp.style.outline='none';});
+    inp.addEventListener('blur',()=>{inp.style.borderColor='#DCE1E7';inp.style.boxShadow='none';});
   }
-
-  const C=v=>getComputedStyle(document.documentElement).getPropertyValue(v).trim();
-  // fill: green above the zero line, red below it
-  const greenSoft=C('--earned-soft'), redSoft=C('--used-soft');
-  const fillGrad=ctx=>{
-    const ch=ctx.chart, area=ch.chartArea; if(!area) return greenSoft;
-    const zeroPx=ch.scales.y.getPixelForValue(0);
-    let z=(zeroPx-area.top)/(area.bottom-area.top); z=Math.max(0,Math.min(1,z));
-    const g=ch.ctx.createLinearGradient(0,area.top,0,area.bottom);
-    g.addColorStop(0, z<=0?redSoft:greenSoft);
-    if(z>0&&z<1){g.addColorStop(z,greenSoft); g.addColorStop(z,redSoft);}
-    g.addColorStop(1, z>=1?greenSoft:redSoft);
-    return g;
-  };
-  const datasets=[];
-  if(isFinite(d.cap)) datasets.push({label:'cap',data:[{x:0,y:d.cap},{x:maxDay,y:d.cap}],
-    borderColor:C('--cap'),borderWidth:1.5,borderDash:[6,5],pointRadius:0,fill:false,tension:0,order:4});
-  datasets.push({label:'Balance',data:line,stepped:true,borderColor:C('--earned'),borderWidth:2.4,
-    pointRadius:0,fill:{value:0},backgroundColor:fillGrad,order:3,
-    segment:{borderColor:s=>(s.p0.parsed.y<0||s.p1.parsed.y<0)?C('--used'):C('--earned')}});
-  if(holPts.length) datasets.push({label:'Holiday used',data:holPts,type:'scatter',showLine:false,
-    pointStyle:'rectRot',pointRadius:5,pointHoverRadius:7,backgroundColor:C('--used'),
-    borderColor:'#fff',borderWidth:1.4,order:1});
-  if(vacPts.length) datasets.push({label:'Vacation used',data:vacPts,type:'scatter',showLine:false,
-    pointStyle:'rectRot',pointRadius:6,pointHoverRadius:8,backgroundColor:C('--vac'),
-    borderColor:'#fff',borderWidth:1.4,order:2});
-
-  // legend visibility
-  $('holLegend').style.display=holPts.length?'inline-flex':'none';
-  $('vacLegend').style.display=vacPts.length?'inline-flex':'none';
-  const capLeg=$('capLegend');
-  if(isFinite(d.cap)){capLeg.classList.remove('off');$('capLegendTxt').textContent=`Max cap ${r0(d.cap)} hrs`;}
-  else capLeg.classList.add('off');
-
-  // endpoint labels
-  const EP=[{x:0,y:d.startBal,t:r0(d.startBal)+' hrs',side:'start'},
-            {x:maxDay,y:d.endBal,t:r0(d.endBal)+' hrs',side:'end'}];
-  const endLabels={id:'endLabels',afterDatasetsDraw(c){
-    const{ctx,scales:{x,y}}=c;
-    EP.forEach(p=>{
-      const px=x.getPixelForValue(p.x),py=y.getPixelForValue(p.y);
-      ctx.save();ctx.font="600 12px 'Space Grotesk',sans-serif";
-      const w=ctx.measureText(p.t).width+14;
-      const bx=p.side==='start'?px+8:px-w-8,by=py-26;
-      ctx.fillStyle=C('--ink');ctx.beginPath();ctx.roundRect(bx,by,w,20,6);ctx.fill();
-      ctx.fillStyle='#fff';ctx.textBaseline='middle';ctx.fillText(p.t,bx+7,by+11);
-      ctx.fillStyle=C('--earned');ctx.beginPath();ctx.arc(px,py,4,0,7);ctx.fill();
-      ctx.strokeStyle='#fff';ctx.lineWidth=1.5;ctx.stroke();ctx.restore();
+  function addVacRow(s,e,h){
+    s=s||''; e=e||''; h=(h==null?8:h);
+    const row=document.createElement('div');
+    row.className='vac-row';
+    row.style.cssText="display:grid;grid-template-columns:1fr 1fr;gap:9px;align-items:end;margin-bottom:11px";
+    row.innerHTML=
+      '<div style="display:flex;flex-direction:column;gap:6px"><label style="'+VLAB+'">Start date</label><input type="date" class="vs" style="'+VINP+'" value="'+s+'"></div>'+
+      '<div style="display:flex;flex-direction:column;gap:6px"><label style="'+VLAB+'">End date</label><input type="date" class="ve" style="'+VINP+'" value="'+e+'"></div>'+
+      '<div style="display:flex;flex-direction:column;gap:6px"><label style="'+VLAB+'">Hrs / day</label><input type="number" class="vh" inputmode="decimal" step="0.5" style="'+VINP+'" value="'+h+'"></div>'+
+      '<button class="vac-del" title="Remove" aria-label="Remove vacation period" style="height:38px;border:1px solid #DCE1E7;background:#fff;border-radius:8px;color:#C2563B;font-size:17px;cursor:pointer;line-height:1;padding:0;justify-self:end;width:44px">\u00d7</button>';
+    const vs=row.querySelector('.vs'), ve=row.querySelector('.ve'), vh=row.querySelector('.vh');
+    [vs,ve,vh].forEach(focusWire);
+    const syncDates=()=>{ if(vs.value){ ve.min=vs.value; if(!ve.value||ve.value<vs.value) ve.value=vs.value; } };
+    vs.addEventListener('change',()=>{ syncDates(); render(); });
+    ve.addEventListener('change',()=>{ if(vs.value&&ve.value&&ve.value<vs.value) ve.value=vs.value; render(); });
+    vh.addEventListener('change',render);
+    const del=row.querySelector('.vac-del');
+    del.addEventListener('mouseenter',()=>{del.style.background='rgba(194,86,59,.07)';del.style.borderColor='#C2563B';});
+    del.addEventListener('mouseleave',()=>{del.style.background='#fff';del.style.borderColor='#DCE1E7';});
+    del.addEventListener('click',()=>{row.remove();render();});
+    if(s) syncDates();
+    vacRows.appendChild(row);
+  }
+  function readVacations(){
+    const out=[];
+    vacRows.querySelectorAll('.vac-row').forEach(r=>{
+      const sv=r.querySelector('.vs').value, ev=r.querySelector('.ve').value;
+      const hv=parseFloat(r.querySelector('.vh').value);
+      if(!sv||!ev) return;
+      const s=parseDate(sv), e=parseDate(ev);
+      if(e<s) return;
+      out.push({start:s,end:e,hpd:isNaN(hv)?8:hv});
     });
-  }};
+    return out;
+  }
 
-  if(chart) chart.destroy();
-  chart=new Chart($('chart'),{
-    type:'line',data:{datasets},
-    options:{
-      responsive:true,maintainAspectRatio:false,
-      layout:{padding:{top:30,right:8,left:2}},
-      interaction:{mode:'nearest',intersect:false},
-      scales:{
-        x:{type:'linear',min:0,max:maxDay,grid:{color:C('--grid'),drawTicks:false},
-          border:{color:C('--grid')},
-          afterBuildTicks:a=>{a.ticks=TICKS.map(v=>({value:v}));},
-          ticks:{callback:v=>TLAB[v]||'',font:{family:"'IBM Plex Mono'",size:10.5},
-            color:C('--ink-soft'),maxRotation:0,autoSkip:true,maxTicksLimit:9,padding:8}},
-        y:{min:yMin,max:yMax,grid:{color:C('--grid'),drawTicks:false},border:{display:false},
-          ticks:{stepSize,font:{family:"'IBM Plex Mono'",size:10.5},color:C('--ink-soft'),
-            padding:8,callback:v=>v+' hr'}}
-      },
-      plugins:{
-        legend:{display:false},
-        tooltip:{backgroundColor:C('--ink'),padding:10,cornerRadius:8,displayColors:false,
-          titleFont:{family:"'IBM Plex Mono'",size:11},bodyFont:{family:"'Space Grotesk'",size:13,weight:'600'},
-          callbacks:{
-            title:items=>{const dt=addDays(start,items[0].parsed.x);
-              return dt.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});},
-            label:ctx=>{
-              if(ctx.dataset.label==='Holiday used') return ctx.raw.name+` · −8 hrs → ${ctx.parsed.y.toFixed(1)} hr`;
-              if(ctx.dataset.label==='Vacation used') return `Vacation ${ctx.raw.name} → ${ctx.parsed.y.toFixed(1)} hr`;
-              if(ctx.dataset.label==='cap') return null;
-              return `${ctx.parsed.y.toFixed(1)} hrs · ${(ctx.parsed.y/8).toFixed(1)} days`;}
-          }}
+  const vacBody=$('vacBody'), vacChev=$('vacChev');
+  let vacOpen=false;
+  const setVacOpen=(o)=>{vacOpen=o;vacBody.style.display=o?'block':'none';vacChev.style.transform=o?'rotate(90deg)':'rotate(0deg)';};
+  $('vacHead').addEventListener('click',()=>setVacOpen(!vacOpen));
+  $('addVac').addEventListener('click',()=>{addVacRow();render();});
+
+  const hol=$('hol'), holTrack=$('holTrack'), holThumb=$('holThumb');
+  const updateHolSwitch=()=>{holTrack.style.background=hol.checked?'#0E7C66':'#DCE1E7';holThumb.style.transform=hol.checked?'translateX(18px)':'translateX(0)';};
+  $('holToggle').addEventListener('click',(e)=>{ if(e.target.tagName!=='INPUT'){ hol.checked=!hol.checked; } updateHolSwitch(); render(); });
+
+  let chart=null;
+
+  function compute(){
+    const start=parseDate($('date').value);
+    const startBal=parseFloat($('bal').value)||0;
+    const tier=TIERS[+tierSel.value];
+    const hpp=parseFloat($('hours').value)||80;
+    const ACC=hpp*tier.rate;
+    const capRaw=$('cap').value.trim();
+    const cap=capRaw===''?Infinity:(parseFloat(capRaw)||Infinity);
+    const useHol=$('hol').checked;
+    const months=+$('hz').value;
+    const end=new Date(start); end.setMonth(end.getMonth()+months);
+
+    const hols=useHol?holidaysInWindow(start,end):[];
+    const holDates=hols.map(h=>h.date);
+    const events=[];
+
+    const vacInput=readVacations();
+    const vacBlocks=[]; const allVacDays=[];
+    vacInput.forEach(v=>{
+      const days=vacationDays(v.start,v.end,v.hpd,holDates).filter(x=>x.date>start&&x.date<=end);
+      if(!days.length) return;
+      const total=days.reduce((s,x)=>s+x.hours,0);
+      const lbl=MON[v.start.getMonth()]+" "+v.start.getDate()+"\u2013"+MON[v.end.getMonth()]+" "+v.end.getDate();
+      vacBlocks.push({start:v.start,total,label:lbl,nDays:days.length});
+      days.forEach(x=>allVacDays.push(x));
+    });
+    const vacHoursIn=(a,b)=>allVacDays.filter(x=>x.date>a&&x.date<=b).reduce((s,x)=>s+x.hours,0);
+
+    let pStart=new Date(start), pEnd=addDays(start,14);
+    while(pEnd<=end){
+      const holHrs=8*hols.filter(h=>h.date>pStart&&h.date<=pEnd).length;
+      const worked=Math.max(0,hpp-holHrs-vacHoursIn(pStart,pEnd));
+      events.push({date:new Date(pEnd),kind:'accrual',delta:worked*tier.rate,name:''});
+      pStart=new Date(pEnd); pEnd=addDays(pEnd,14);
+    }
+    hols.forEach(h=>events.push({date:h.date,kind:'holiday',delta:-8,name:h.name}));
+    vacBlocks.forEach(v=>events.push({date:v.start,kind:'vacation',delta:-v.total,name:v.label}));
+    events.sort((a,b)=>(a.date-b.date)||((a.kind==='accrual'?0:1)-(b.kind==='accrual'?0:1)));
+
+    let bal=startBal, earned=0, holUsed=0, vacUsed=0;
+    const tl=[{date:new Date(start),bal,kind:'start',name:''}];
+    for(const e of events){
+      if(e.delta>0){const nb=Math.min(cap,bal+e.delta);earned+=nb-bal;bal=nb;}
+      else{bal+=e.delta;const drawn=-e.delta;
+        if(e.kind==='holiday')holUsed+=drawn; else vacUsed+=drawn;}
+      tl.push({date:new Date(e.date),bal,kind:e.kind,name:e.name});
+    }
+    const endBal=bal, used=holUsed+vacUsed;
+    const trough=Math.min.apply(null,tl.map(p=>p.bal));
+
+    let my=start.getFullYear(),mm=start.getMonth();
+    const ey=end.getFullYear(),em=end.getMonth();
+    const monthsArr=[];
+    while(my<ey||(my===ey&&mm<=em)){monthsArr.push([my,mm]);mm++;if(mm>11){mm=0;my++;}}
+    let b=startBal,ei=0;const rows=[];
+    for(const mp of monthsArr){
+      const yy=mp[0],mo=mp[1];
+      const me=new Date(yy,mo+1,0);let acc=0,hol=0,vac=0,names=[];
+      while(ei<events.length&&events[ei].date<=me){
+        const e=events[ei];
+        if(e.delta>0){const nb=Math.min(cap,b+e.delta);acc+=nb-b;b=nb;}
+        else{b+=e.delta;const drawn=-e.delta;
+          if(e.kind==='holiday'){hol+=drawn;names.push(e.name);} else vac+=drawn;}
+        ei++;
       }
-    },
-    plugins:[endLabels]
+      rows.push({m:MON[mo]+" "+yy,acc,hol,vac,names,bal:b,days:b/8});
+    }
+    return {start,end,startBal,endBal,earned,used,holUsed,vacUsed,tl,rows,cap,tier,ACC,months,hpp,trough,
+            holCount:hols.length,vacBlocks,vacDayCount:allVacDays.length,peak:Math.max.apply(null,tl.map(p=>p.bal))};
+  }
+
+  function render(){
+    const d=compute();
+    const f1=x=>x.toFixed(1), r0=x=>Math.round(x);
+
+    $('rateRead').innerHTML='<b style="color:#16212E">'+d.tier.rate+'</b>/hr \u00d7 <b style="color:#16212E">'+d.hpp+'</b> hrs \u2192 <b style="color:#16212E">'+d.ACC.toFixed(2)+'</b> hrs/period \u2192 <b style="color:#0E7C66">'+(d.tier.rate*d.hpp*26).toFixed(1)+'</b> hrs ('+f1(d.tier.rate*d.hpp*26/8)+' days)/yr';
+
+    $('s1v').textContent=r0(d.startBal); $('s1u').textContent=f1(d.startBal/8)+' days';
+    $('s2k').textContent='Projected \u00b7 '+d.months+' mo';
+    $('s2v').textContent=r0(d.endBal); $('s2u').textContent='hrs \u00b7 '+f1(d.endBal/8)+' days';
+    const net=d.endBal-d.startBal;
+    $('s3v').textContent=(net>=0?'+':'\u2212')+r0(Math.abs(net));
+    $('s3v').style.color=net>=0?'#0E7C66':'#C2563B';
+    let sub='+'+r0(d.earned)+' earned';
+    if(d.holUsed>0) sub+=' \u2212'+r0(d.holUsed)+' hol';
+    if(d.vacUsed>0) sub+=' \u2212'+r0(d.vacUsed)+' vac';
+    $('s3u').textContent=sub;
+    if(isFinite(d.cap)){
+      const head=Math.max(0,d.cap-d.endBal);
+      $('s4v').textContent=head<=0?'0':r0(head);
+      $('s4u').textContent=head<=0?'at '+r0(d.cap)+' cap':'to '+r0(d.cap)+' max';
+    }else{$('s4v').textContent='\u2014';$('s4u').textContent='no cap';}
+
+    const start=d.start;
+    const line=d.tl.map(p=>({x:dayIdx(p.date,start),y:p.bal}));
+    const holPts=d.tl.filter(p=>p.kind==='holiday').map(p=>({x:dayIdx(p.date,start),y:p.bal,name:p.name}));
+    const vacPts=d.tl.filter(p=>p.kind==='vacation').map(p=>({x:dayIdx(p.date,start),y:p.bal,name:p.name}));
+    const maxDay=dayIdx(d.end,start);
+    const top=isFinite(d.cap)?Math.max(d.peak,d.cap):d.peak;
+    let yMax=Math.max(80,Math.ceil(top*1.12/40)*40);
+    if(isFinite(d.cap)) yMax=Math.max(yMax,Math.ceil(d.cap/40)*40+40);
+    const yMin=d.trough<0?Math.floor(d.trough/40)*40-20:0;
+    const stepSize=(yMax-yMin)<=200?40:80;
+
+    const TICKS=[],TLAB={};
+    let ty=start.getFullYear(),tm=start.getMonth();
+    for(let i=0;i<=d.months+1;i++){
+      const dt=new Date(ty,tm,1);
+      if(dt>=start){const dv=dayIdx(dt,start);TICKS.push(dv);TLAB[dv]=MON[tm]+" '"+String(ty).slice(2);}
+      tm++;if(tm>11){tm=0;ty++;}
+    }
+
+    const greenSoft=C('--earned-soft'), redSoft=C('--used-soft');
+    const fillGrad=ctx=>{
+      const ch=ctx.chart, area=ch.chartArea; if(!area) return greenSoft;
+      const zeroPx=ch.scales.y.getPixelForValue(0);
+      let z=(zeroPx-area.top)/(area.bottom-area.top); z=Math.max(0,Math.min(1,z));
+      const g=ch.ctx.createLinearGradient(0,area.top,0,area.bottom);
+      g.addColorStop(0, z<=0?redSoft:greenSoft);
+      if(z>0&&z<1){g.addColorStop(z,greenSoft); g.addColorStop(z,redSoft);}
+      g.addColorStop(1, z>=1?greenSoft:redSoft);
+      return g;
+    };
+    const datasets=[];
+    if(isFinite(d.cap)) datasets.push({label:'cap',data:[{x:0,y:d.cap},{x:maxDay,y:d.cap}],
+      borderColor:C('--cap'),borderWidth:1.5,borderDash:[6,5],pointRadius:0,fill:false,tension:0,order:4});
+    datasets.push({label:'Balance',data:line,stepped:true,borderColor:C('--earned'),borderWidth:2.4,
+      pointRadius:0,fill:{value:0},backgroundColor:fillGrad,order:3,
+      segment:{borderColor:s=>(s.p0.parsed.y<0||s.p1.parsed.y<0)?C('--used'):C('--earned')}});
+    if(holPts.length) datasets.push({label:'Holiday used',data:holPts,type:'scatter',showLine:false,
+      pointStyle:'rectRot',pointRadius:5,pointHoverRadius:7,backgroundColor:C('--used'),borderColor:'#fff',borderWidth:1.4,order:1});
+    if(vacPts.length) datasets.push({label:'Vacation used',data:vacPts,type:'scatter',showLine:false,
+      pointStyle:'rectRot',pointRadius:6,pointHoverRadius:8,backgroundColor:C('--vac'),borderColor:'#fff',borderWidth:1.4,order:2});
+
+    $('holLegend').style.display=holPts.length?'inline-flex':'none';
+    $('vacLegend').style.display=vacPts.length?'inline-flex':'none';
+    const capLeg=$('capLegend');
+    if(isFinite(d.cap)){capLeg.style.display='inline-flex';$('capLegendTxt').textContent='Max cap '+r0(d.cap)+' hrs';}
+    else capLeg.style.display='none';
+
+    const EP=[{x:0,y:d.startBal,t:r0(d.startBal)+' hrs',side:'start'},
+              {x:maxDay,y:d.endBal,t:r0(d.endBal)+' hrs',side:'end'}];
+    const endLabels={id:'endLabels',afterDatasetsDraw(c){
+      const ctx=c.ctx, x=c.scales.x, y=c.scales.y;
+      EP.forEach(p=>{
+        const px=x.getPixelForValue(p.x),py=y.getPixelForValue(p.y);
+        ctx.save();ctx.font="600 12px 'Space Grotesk',sans-serif";
+        const w=ctx.measureText(p.t).width+14;
+        const bx=p.side==='start'?px+8:px-w-8,by=py-26;
+        ctx.fillStyle=C('--ink');ctx.beginPath();ctx.roundRect(bx,by,w,20,6);ctx.fill();
+        ctx.fillStyle='#fff';ctx.textBaseline='middle';ctx.fillText(p.t,bx+7,by+11);
+        ctx.fillStyle=C('--earned');ctx.beginPath();ctx.arc(px,py,4,0,7);ctx.fill();
+        ctx.strokeStyle='#fff';ctx.lineWidth=1.5;ctx.stroke();ctx.restore();
+      });
+    }};
+
+    if(chart) chart.destroy();
+    chart=new Chart($('chart'),{
+      type:'line',data:{datasets},
+      options:{
+        responsive:true,maintainAspectRatio:false,
+        layout:{padding:{top:30,right:8,left:2}},
+        interaction:{mode:'nearest',intersect:false},
+        scales:{
+          x:{type:'linear',min:0,max:maxDay,grid:{color:C('--grid'),drawTicks:false},border:{color:C('--grid')},
+            afterBuildTicks:a=>{a.ticks=TICKS.map(v=>({value:v}));},
+            ticks:{callback:v=>TLAB[v]||'',font:{family:"'IBM Plex Mono'",size:10.5},color:C('--ink-soft'),maxRotation:0,autoSkip:true,maxTicksLimit:9,padding:8}},
+          y:{min:yMin,max:yMax,grid:{color:C('--grid'),drawTicks:false},border:{display:false},
+            ticks:{stepSize,font:{family:"'IBM Plex Mono'",size:10.5},color:C('--ink-soft'),padding:8,callback:v=>v+' hr'}}
+        },
+        plugins:{
+          legend:{display:false},
+          tooltip:{backgroundColor:C('--ink'),padding:10,cornerRadius:8,displayColors:false,
+            titleFont:{family:"'IBM Plex Mono'",size:11},bodyFont:{family:"'Space Grotesk'",size:13,weight:'600'},
+            callbacks:{
+              title:items=>{const dt=addDays(start,items[0].parsed.x);return dt.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});},
+              label:ctx=>{
+                if(ctx.dataset.label==='Holiday used') return ctx.raw.name+" \u00b7 \u22128 hrs \u2192 "+ctx.parsed.y.toFixed(1)+" hr";
+                if(ctx.dataset.label==='Vacation used') return "Vacation "+ctx.raw.name+" \u2192 "+ctx.parsed.y.toFixed(1)+" hr";
+                if(ctx.dataset.label==='cap') return null;
+                return ctx.parsed.y.toFixed(1)+" hrs \u00b7 "+(ctx.parsed.y/8).toFixed(1)+" days";}
+            }}
+        }
+      },
+      plugins:[endLabels]
+    });
+
+    const tb=$('tbody');tb.innerHTML='';
+    const TD="padding:10px 14px;border-bottom:1px solid #E5E9EE;white-space:nowrap";
+    let tA=0,tH=0,tV=0;
+    d.rows.forEach(r=>{
+      tA+=r.acc;tH+=r.hol;tV+=r.vac;
+      const tr=document.createElement('tr');
+      if(r.hol>0||r.vac>0) tr.style.background='rgba(194,86,59,.045)';
+      const holCell=r.hol>0?'\u2212'+r0(r.hol)+' <span style="font-family:Inter,sans-serif;font-size:10px;color:#C2563B;font-weight:500">'+r.names.join(', ')+'</span>':'\u2014';
+      const vacCell=r.vac>0?'\u2212'+r.vac.toFixed(1):'\u2014';
+      tr.innerHTML='<td style="'+TD+';text-align:left">'+r.m+'</td>'+
+        '<td style="'+TD+';text-align:right;color:#0E7C66">'+(r.acc>0?'+'+r.acc.toFixed(2):'\u2014')+'</td>'+
+        '<td style="'+TD+';text-align:right;color:#C2563B">'+holCell+'</td>'+
+        '<td style="'+TD+';text-align:right;color:#C2563B">'+vacCell+'</td>'+
+        '<td style="'+TD+';text-align:right;font-weight:600;color:#16212E">'+r.bal.toFixed(2)+'</td>'+
+        '<td style="'+TD+';text-align:right">'+r.days.toFixed(1)+'</td>';
+      tb.appendChild(tr);
+    });
+    $('tAcc').textContent='+'+tA.toFixed(2);
+    $('tHol').textContent=tH>0?'\u2212'+r0(tH):'\u2014';
+    $('tVac').textContent=tV>0?'\u2212'+f1(tV):'\u2014';
+    $('tBal').textContent=d.endBal.toFixed(2);
+    $('tDays').textContent=f1(d.endBal/8);
+
+    $('vacEmpty').style.display=d.vacBlocks.length?'none':'block';
+    const vacCount=$('vacCount');
+    if(d.vacBlocks.length){
+      const totDays=d.vacBlocks.reduce((s,v)=>s+v.nDays,0);
+      $('vacSum').textContent=d.vacBlocks.length+' period'+(d.vacBlocks.length>1?'s':'')+' \u00b7 '+totDays+' work day'+(totDays>1?'s':'')+' \u00b7 '+r0(d.vacUsed)+' hrs used + '+(d.vacUsed*d.tier.rate).toFixed(1)+' hrs forgone';
+      vacCount.textContent=d.vacBlocks.length+' planned \u00b7 \u2212'+r0(d.vacUsed)+' hrs';
+      vacCount.style.color='#4F6D9E';
+    } else { $('vacSum').textContent=''; vacCount.textContent='optional'; vacCount.style.color='#5C6776'; }
+
+    const capNote=isFinite(d.cap)
+      ? 'Balance is capped at <b style="color:#16212E">'+r0(d.cap)+' hrs ('+f1(d.cap/8)+' days)</b> \u2014 derived from this tier\'s published max of <b style="color:#16212E">'+d.tier.maxDays+' days</b>. This path '+(d.peak>=d.cap?'<b style="color:#16212E">reaches</b>':'peaks at <b style="color:#16212E">'+r0(d.peak)+' hrs</b> and never reaches')+' the cap.'
+      : 'No cap applies to this tier \u2014 at this accrual rate the balance can\'t mathematically reach one.';
+    const tierNote = +tierSel.value===5
+      ? '<div style="margin-bottom:5px;padding-left:17px;text-indent:-17px">\u2014 The 10th-year cap was published as "5444 hrs" \u2014 likely a typo for <b style="color:#16212E">544</b> (68 days \u00d7 8). Adjust the cap field if your plan differs.</div>' : '';
+    const vacNote = d.vacBlocks.length
+      ? '<div style="margin-bottom:5px;padding-left:17px;text-indent:-17px">\u2014 Planned vacation: <b style="color:#16212E">'+d.vacDayCount+' work days</b> across <b style="color:#16212E">'+d.vacBlocks.length+'</b> period(s) draw down <b style="color:#16212E">\u2212'+r0(d.vacUsed)+' hrs</b> and earn no accrual (<b style="color:#16212E">\u2212'+(d.vacUsed*d.tier.rate).toFixed(1)+' hrs</b> forgone). Weekends and holidays inside a range are skipped.</div>' : '';
+    const shortNote = d.trough<0
+      ? '<div style="margin-bottom:5px;padding-left:17px;text-indent:-17px">\u2014 <b style="color:#C2563B">Heads up:</b> this plan drops the balance to <b style="color:#16212E">'+f1(d.trough)+' hrs</b> at its low point \u2014 the requested time off exceeds available hours. Reduce vacation or shift it later.</div>' : '';
+    const R="margin-bottom:5px;padding-left:17px;text-indent:-17px";
+    $('notes').innerHTML=
+      '<div style="'+R+'">\u2014 Accrual <b style="color:#16212E">'+d.tier.rate+' hr/hr worked</b> \u00d7 <b style="color:#16212E">'+d.hpp+' hrs/period</b> \u2192 <b style="color:#16212E">'+d.ACC.toFixed(3)+' hrs</b> per full bi-weekly period \u2192 <b style="color:#16212E">'+(d.tier.rate*d.hpp*26).toFixed(1)+' hrs ('+f1(d.tier.rate*d.hpp*26/8)+' days)</b> per year if every day is worked.</div>'+
+      (d.holCount>0?'<div style="'+R+'">\u2014 Window has <b style="color:#16212E">'+d.holCount+' holidays</b>. Each draws down <b style="color:#16212E">8 hrs</b> and earns no accrual \u2014 a holiday period accrues only <b style="color:#16212E">'+((d.hpp-8)*d.tier.rate).toFixed(3)+' hrs</b>. Holiday impact: <b style="color:#16212E">\u2212'+r0(d.holUsed)+' hrs used</b> plus <b style="color:#16212E">\u2212'+(d.holCount*8*d.tier.rate).toFixed(1)+' hrs</b> forgone accrual.</div>':'<div style="'+R+'">\u2014 Holidays are <b style="color:#16212E">not</b> modeled (toggle is off) \u2014 every period accrues the full amount.</div>')+
+      vacNote+shortNote+
+      '<div style="'+R+'">'+capNote+'</div>'+tierNote;
+  }
+
+  tierSel.addEventListener('change',()=>{
+    const c=capHrs(TIERS[+tierSel.value]);
+    $('cap').value=c==null?'':c;
+    render();
   });
+  ['bal','date','hours','hz'].forEach(id=>$(id).addEventListener('change',render));
 
-  // table
-  const tb=$('tbody');tb.innerHTML='';
-  let tA=0,tH=0,tV=0;
-  d.rows.forEach(r=>{
-    tA+=r.acc;tH+=r.hol;tV+=r.vac;
-    const tr=document.createElement('tr');
-    if(r.hol>0||r.vac>0) tr.className='hol';
-    const holCell=r.hol>0?`−${r0(r.hol)} <span class="tag">${r.names.join(', ')}</span>`:'—';
-    const vacCell=r.vac>0?`−${r.vac.toFixed(1)}`:'—';
-    tr.innerHTML=`<td>${r.m}</td>
-      <td class="pos">${r.acc>0?'+'+r.acc.toFixed(2):'—'}</td>
-      <td class="neg">${holCell}</td>
-      <td class="neg">${vacCell}</td>
-      <td class="bal">${r.bal.toFixed(2)}</td>
-      <td>${r.days.toFixed(1)}</td>`;
-    tb.appendChild(tr);
-  });
-  $('tAcc').textContent='+'+tA.toFixed(2);
-  $('tHol').textContent=tH>0?'−'+r0(tH):'—';
-  $('tVac').textContent=tV>0?'−'+f1(tV):'—';
-  $('tBal').textContent=d.endBal.toFixed(2);
-  $('tDays').textContent=f1(d.endBal/8);
-
-  // what-if summary + empty state
-  $('vacEmpty').style.display=d.vacBlocks.length?'none':'block';
-  if(d.vacBlocks.length){
-    const totDays=d.vacBlocks.reduce((s,v)=>s+v.nDays,0);
-    $('vacSum').textContent=`${d.vacBlocks.length} period${d.vacBlocks.length>1?'s':''} · ${totDays} work day${totDays>1?'s':''} · ${r0(d.vacUsed)} hrs used + ${(d.vacUsed*d.tier.rate).toFixed(1)} hrs forgone accrual`;
-  } else $('vacSum').textContent='';
-
-  // notes
-  const capNote=isFinite(d.cap)
-    ? `Balance is capped at <b>${r0(d.cap)} hrs (${f1(d.cap/8)} days)</b> — derived from this tier's published max of <b>${d.tier.maxDays} days</b>. This path ${d.peak>=d.cap?'<b>reaches</b>':'peaks at <b>'+r0(d.peak)+' hrs</b> and never reaches'} the cap.`
-    : `No cap applies to this tier — at this accrual rate the balance can't mathematically reach one.`;
-  const tierNote = +tierSel.value===5
-    ? `<div class="row">The 10th-year cap was published as "5444 hrs" — that appears to be a typo for <b>544</b> (68 days × 8). Adjust the cap field if your plan differs.</div>` : '';
-  const vacNote = d.vacBlocks.length
-    ? `<div class="row">Planned vacation: <b>${d.vacDayCount} work days</b> across <b>${d.vacBlocks.length}</b> period(s) draw down <b>−${r0(d.vacUsed)} hrs</b> and earn no accrual (<b>−${(d.vacUsed*d.tier.rate).toFixed(1)} hrs</b> forgone). Weekends and holidays inside a range are skipped.</div>` : '';
-  const shortNote = d.trough<0
-    ? `<div class="row"><b style="color:var(--used)">Heads up:</b> this plan drops the balance to <b>${f1(d.trough)} hrs</b> at its low point — the requested time off exceeds available hours. Reduce vacation or shift it later.</div>` : '';
-  $('notes').innerHTML=
-    `<div class="row">Accrual <b>${d.tier.rate} hr/hr worked</b> × <b>${d.hpp} hrs/period</b> → <b>${d.ACC.toFixed(3)} hrs</b> per full bi-weekly period → <b>${(d.tier.rate*d.hpp*26).toFixed(1)} hrs (${f1(d.tier.rate*d.hpp*26/8)} days)</b> per year if every day is worked.</div>`+
-    (d.holCount>0?`<div class="row">Window has <b>${d.holCount} holidays</b>. Each draws down <b>8 hrs</b> and earns no accrual — a holiday period accrues only <b>${((d.hpp-8)*d.tier.rate).toFixed(3)} hrs</b>. Holiday impact: <b>−${r0(d.holUsed)} hrs used</b> plus <b>−${(d.holCount*8*d.tier.rate).toFixed(1)} hrs</b> forgone accrual.</div>`:`<div class="row">Holidays are <b>not</b> modeled (toggle is off) — every period accrues the full amount.</div>`)+
-    vacNote+
-    shortNote+
-    `<div class="row">${capNote}</div>`+
-    tierNote;
-}
-
-// tier change → prefill cap from the rate's max-days parameter
-tierSel.addEventListener('change',()=>{
-  const c=capHrs(TIERS[+tierSel.value]);
-  $('cap').value=c==null?'':c;
-  render();
-});
-['bal','date','hours','hz'].forEach(id=>$(id).addEventListener('change',render));
-$('hol').addEventListener('change',render);
-$('go').addEventListener('click',render);
-
-// init: prefill cap for default tier, draw
-{const c=capHrs(TIERS[+tierSel.value]); $('cap').value=c==null?'':c;}
-render();
+  function boot(){
+    const c=capHrs(TIERS[+tierSel.value]); $('cap').value=c==null?'':c;
+    hol.checked=true;
+    updateHolSwitch();
+    render();
+  }
+  if(window.Chart) boot();
+  else { const t=setInterval(()=>{ if(window.Chart){ clearInterval(t); boot(); } },50); }
+})();
 </script>
 </body>
 </html>
