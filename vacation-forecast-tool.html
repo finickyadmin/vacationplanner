@@ -43,10 +43,12 @@
     text-transform:uppercase;color:var(--ink-soft);font-weight:500}
   input,select{font-family:'IBM Plex Mono',monospace;font-size:14px;color:var(--ink);
     background:#fff;border:1px solid var(--grid);border-radius:9px;padding:11px 12px;width:100%;
-    appearance:none;-webkit-appearance:none}
+    text-align:center;appearance:none;-webkit-appearance:none}
   select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%235C6776' d='M6 8 0 0h12z'/%3E%3C/svg%3E");
-    background-repeat:no-repeat;background-position:right 13px center;padding-right:32px;cursor:pointer}
+    background-repeat:no-repeat;background-position:right 13px center;padding-left:32px;padding-right:32px;cursor:pointer;text-align-last:center}
   input:focus,select:focus{outline:none;border-color:var(--earned);box-shadow:0 0 0 3px var(--earned-soft)}
+  input[readonly]{background:var(--paper);color:var(--ink);cursor:default}
+  input[readonly]:focus{border-color:var(--grid);box-shadow:none}
   .hint{font-size:10px;color:var(--ink-soft);font-family:'Inter',sans-serif;margin-top:-1px}
   .switch{display:inline-flex;align-items:center;gap:11px;cursor:pointer;user-select:none}
   .switch input{position:absolute;opacity:0;width:0;height:0}
@@ -182,8 +184,8 @@
       </div>
       <div class="field cap">
         <label for="cap">Max balance (hrs)</label>
-        <input id="cap" type="number" inputmode="decimal" step="1" placeholder="none">
-        <div class="hint">Editable. Blank = no cap.</div>
+        <input id="cap" type="number" inputmode="decimal" step="1" placeholder="none" readonly>
+        <div class="hint">Set by your accrual tier.</div>
       </div>
       <div class="field hol">
         <label>Holidays</label>
@@ -581,7 +583,7 @@ function render(){
   // notes
   const capNote=isFinite(d.cap)
     ? `Balance is capped at <b>${r0(d.cap)} hrs (${f1(d.cap/8)} days)</b> — derived from this tier's published max of <b>${d.tier.maxDays} days</b>. This path ${d.peak>=d.cap?'<b>reaches</b>':'peaks at <b>'+r0(d.peak)+' hrs</b> and never reaches'} the cap.`
-    : `No cap applies to this tier (it can't mathematically reach one). Enter a value in Max balance to impose your own.`;
+    : `No cap applies to this tier — at this accrual rate the balance can't mathematically reach one.`;
   const tierNote = +tierSel.value===5
     ? `<div class="row">The 10th-year cap was published as "5444 hrs" — that appears to be a typo for <b>544</b> (68 days × 8). Adjust the cap field if your plan differs.</div>` : '';
   const vacNote = d.vacBlocks.length
@@ -603,7 +605,7 @@ tierSel.addEventListener('change',()=>{
   $('cap').value=c==null?'':c;
   render();
 });
-['bal','date','hours','cap','hz'].forEach(id=>$(id).addEventListener('change',render));
+['bal','date','hours','hz'].forEach(id=>$(id).addEventListener('change',render));
 $('hol').addEventListener('change',render);
 $('go').addEventListener('click',render);
 
