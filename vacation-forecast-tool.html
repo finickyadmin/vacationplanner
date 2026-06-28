@@ -13,6 +13,7 @@
     --paper:#E9EDF1; --card:#FBFCFD; --ink:#16212E; --ink-soft:#5C6776;
     --earned:#0E7C66; --earned-soft:rgba(14,124,102,.12);
     --used:#C2563B; --cap:#B98A22; --grid:#DCE1E7; --hair:#E5E9EE;
+    --vac:#4F6D9E; --vac-soft:rgba(79,109,158,.12);
   }
   *{box-sizing:border-box;margin:0;padding:0}
   body{
@@ -91,7 +92,7 @@
   .ledger{margin-top:26px}
   .ledger h2{font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:16px;margin-bottom:12px}
   .scroll{overflow-x:auto;border:1px solid var(--hair);border-radius:12px;background:var(--card)}
-  table{border-collapse:collapse;width:100%;min-width:560px;font-family:'IBM Plex Mono',monospace;font-size:12.5px}
+  table{border-collapse:collapse;width:100%;min-width:640px;font-family:'IBM Plex Mono',monospace;font-size:12.5px}
   thead th{text-align:right;font-weight:500;color:var(--ink-soft);font-size:10.5px;letter-spacing:.08em;
     text-transform:uppercase;padding:12px 14px;border-bottom:1.5px solid var(--ink);white-space:nowrap}
   thead th:first-child,tbody td:first-child{text-align:left}
@@ -105,15 +106,41 @@
   tfoot td{padding:11px 14px;font-weight:600;color:var(--ink);border-top:1.5px solid var(--ink);text-align:right}
   tfoot td:first-child{text-align:left}
 
-  .notes{margin-top:22px;font-size:12px;color:var(--ink-soft);line-height:1.7}
+  .notes{margin-top:22px;font-size:12px;color:var(--ink-soft);line-height:1.65}
   .notes b{color:var(--ink);font-family:'IBM Plex Mono',monospace;font-weight:500}
-  .notes .row{display:flex;gap:9px;margin-bottom:3px}
-  .notes .row::before{content:'—';color:var(--earned)}
+  .notes .row{margin-bottom:5px;padding-left:17px;text-indent:-17px}
+  .notes .row::before{content:'— ';color:var(--earned)}
+
+  /* what-if vacation card */
+  .whatif{background:var(--card);border:1px solid var(--hair);border-radius:14px;
+    padding:20px 18px;margin:0 0 22px}
+  .whatif .head{display:flex;align-items:baseline;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:6px}
+  .whatif h2{font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.18em;
+    text-transform:uppercase;color:var(--vac);font-weight:600}
+  .whatif .lead{font-size:12.5px;color:var(--ink-soft);margin-bottom:14px}
+  .vac-row{display:grid;grid-template-columns:1fr 1fr 110px 38px;gap:10px;align-items:end;margin-bottom:10px}
+  .vac-row .f{display:flex;flex-direction:column;gap:6px}
+  .vac-row label{font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.08em;
+    text-transform:uppercase;color:var(--ink-soft)}
+  .vac-row input{font-family:'IBM Plex Mono',monospace;font-size:13.5px;color:var(--ink);
+    background:#fff;border:1px solid var(--grid);border-radius:8px;padding:10px 11px;width:100%}
+  .vac-row input:focus{outline:none;border-color:var(--vac);box-shadow:0 0 0 3px var(--vac-soft)}
+  .vac-del{height:40px;border:1px solid var(--grid);background:#fff;border-radius:8px;color:var(--used);
+    font-size:17px;cursor:pointer;line-height:1;padding:0}
+  .vac-del:hover{background:rgba(194,86,59,.07);border-color:var(--used)}
+  .vac-empty{font-size:12.5px;color:var(--ink-soft);font-style:italic;margin-bottom:14px}
+  .addvac{font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:13px;color:var(--vac);
+    background:var(--vac-soft);border:1px solid transparent;border-radius:8px;padding:9px 16px;cursor:pointer}
+  .addvac:hover{border-color:var(--vac)}
+  .vac-sum{font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--vac);margin-top:12px}
+  .dot.v{background:var(--vac);transform:rotate(45deg)}
 
   @media(max-width:680px){
     .field.bal,.field.date,.field.hours,.field.tier,.field.cap,.field.hz,.field.hol{grid-column:span 12}
     .stats{grid-template-columns:repeat(2,1fr)}
     .chart-box{height:300px}
+    .vac-row{grid-template-columns:1fr 1fr;gap:9px}
+    .vac-row .f.hpd{grid-column:1} .vac-del{grid-column:2;justify-self:end;width:44px}
   }
 </style>
 </head>
@@ -168,6 +195,15 @@
     </div>
   </div>
 
+  <div class="whatif">
+    <div class="head"><h2>What-if · Planned Vacation</h2></div>
+    <div class="lead">Add one or more time-off periods. Weekdays in each range draw down your balance and earn no accrual (holidays inside a range are skipped, since they're already counted).</div>
+    <div id="vacRows"></div>
+    <div id="vacEmpty" class="vac-empty">No vacation planned — the forecast assumes no time off taken.</div>
+    <button class="addvac" id="addVac">+ Add vacation period</button>
+    <div class="vac-sum" id="vacSum"></div>
+  </div>
+
   <div class="stats">
     <div class="tile"><div class="k">Current Balance</div><div class="v" id="s1v">—</div><div class="u" id="s1u"></div></div>
     <div class="tile d"><div class="k" id="s2k">Projected End</div><div class="v" id="s2v">—</div><div class="u" id="s2u"></div></div>
@@ -181,6 +217,7 @@
       <div class="legend">
         <span><i class="dot e"></i>Accrual</span>
         <span id="holLegend"><i class="dot u"></i>Holiday used (−8)</span>
+        <span id="vacLegend"><i class="dot v"></i>Vacation used</span>
         <span id="capLegend"><i class="dot c"></i><span id="capLegendTxt">Max cap</span></span>
       </div>
     </div>
@@ -191,9 +228,9 @@
     <h2>Month-by-month ledger</h2>
     <div class="scroll">
       <table>
-        <thead><tr><th>Month</th><th>Accrued</th><th>Holiday Used</th><th>End Balance</th><th>Days</th></tr></thead>
+        <thead><tr><th>Month</th><th>Accrued</th><th>Holiday Used</th><th>Vacation Used</th><th>End Balance</th><th>Days</th></tr></thead>
         <tbody id="tbody"></tbody>
-        <tfoot><tr><td>Total</td><td class="pos" id="tAcc"></td><td class="neg" id="tHol"></td><td id="tBal"></td><td id="tDays"></td></tr></tfoot>
+        <tfoot><tr><td>Total</td><td class="pos" id="tAcc"></td><td class="neg" id="tHol"></td><td class="neg" id="tVac"></td><td id="tBal"></td><td id="tDays"></td></tr></tfoot>
       </table>
     </div>
   </div>
@@ -203,13 +240,14 @@
 
 <script>
 const TIERS=[
-  {label:"New Hire · Under 1 Year · Full-Time", rate:0.0654, cap:null},
-  {label:"New Hire · Under 1 Year · Half/Part-Time", rate:0.0847, cap:null},
-  {label:"Current Employee · Under 1 Year", rate:0.0847, cap:null},
-  {label:"Current Employee · Beginning 2nd Year", rate:0.0924, cap:null},
-  {label:"Current Employee · Beginning 3rd Year+", rate:0.1116, cap:464},
-  {label:"Current Employee · Beginning 10th Year+", rate:0.1308, cap:544},
+  {label:"New Hire · Under 1 Year · Full-Time", rate:0.0654, maxDays:null},
+  {label:"New Hire · Under 1 Year · Half/Part-Time", rate:0.0847, maxDays:null},
+  {label:"Current Employee · Under 1 Year", rate:0.0847, maxDays:null},
+  {label:"Current Employee · Beginning 2nd Year", rate:0.0924, maxDays:null},
+  {label:"Current Employee · Beginning 3rd Year+", rate:0.1116, maxDays:58},
+  {label:"Current Employee · Beginning 10th Year+", rate:0.1308, maxDays:68},
 ];
+const capHrs=t=>t.maxDays==null?null:t.maxDays*8;  // cap derived from the rate's max-days parameter
 const MON=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 const $=id=>document.getElementById(id);
 
@@ -247,6 +285,47 @@ function holidaysInWindow(start,end){
   return res;
 }
 
+const sameDay=(a,b)=>a.getFullYear()===b.getFullYear()&&a.getMonth()===b.getMonth()&&a.getDate()===b.getDate();
+// weekdays in [vStart,vEnd] that aren't holidays — these are the days vacation is actually used
+function vacationDays(vStart,vEnd,hpd,holDates){
+  const days=[];
+  let d=new Date(vStart);
+  while(d<=vEnd){
+    const dow=d.getDay();
+    if(dow!==0&&dow!==6&&!holDates.some(h=>sameDay(h,d))) days.push({date:new Date(d),hours:hpd});
+    d.setDate(d.getDate()+1);
+  }
+  return days;
+}
+
+// ---- vacation row management ----
+const vacRows=$('vacRows');
+function addVacRow(s='',e='',h=8){
+  const row=document.createElement('div');
+  row.className='vac-row';
+  row.innerHTML=`
+    <div class="f"><label>Start date</label><input type="date" class="vs" value="${s}"></div>
+    <div class="f"><label>End date</label><input type="date" class="ve" value="${e}"></div>
+    <div class="f hpd"><label>Hrs / day</label><input type="number" class="vh" inputmode="decimal" step="0.5" value="${h}"></div>
+    <button class="vac-del" title="Remove" aria-label="Remove vacation period">×</button>`;
+  row.querySelectorAll('input').forEach(inp=>inp.addEventListener('change',render));
+  row.querySelector('.vac-del').addEventListener('click',()=>{row.remove();render();});
+  vacRows.appendChild(row);
+}
+function readVacations(){
+  const out=[];
+  vacRows.querySelectorAll('.vac-row').forEach(r=>{
+    const sv=r.querySelector('.vs').value, ev=r.querySelector('.ve').value;
+    const hv=parseFloat(r.querySelector('.vh').value);
+    if(!sv||!ev) return;
+    const s=parseDate(sv), e=parseDate(ev);
+    if(e<s) return;
+    out.push({start:s,end:e,hpd:isNaN(hv)?8:hv});
+  });
+  return out;
+}
+$('addVac').addEventListener('click',()=>{addVacRow();});
+
 let chart=null;
 
 function compute(){
@@ -263,28 +342,47 @@ function compute(){
 
   // events
   const hols=useHol?holidaysInWindow(start,end):[];
+  const holDates=hols.map(h=>h.date);
   const events=[];
+
+  // vacation blocks → per-workday usage (weekdays, excluding holidays already counted)
+  const vacInput=readVacations();
+  const vacBlocks=[];        // {start, days:[{date,hours}], total, label}
+  const allVacDays=[];
+  vacInput.forEach(v=>{
+    const days=vacationDays(v.start,v.end,v.hpd,holDates).filter(x=>x.date>start&&x.date<=end);
+    if(!days.length) return;
+    const total=days.reduce((s,x)=>s+x.hours,0);
+    const lbl=`${MON[v.start.getMonth()]} ${v.start.getDate()}–${MON[v.end.getMonth()]} ${v.end.getDate()}`;
+    vacBlocks.push({start:v.start,total,label:lbl,nDays:days.length});
+    days.forEach(x=>allVacDays.push(x));
+  });
+  const vacHoursIn=(a,b)=>allVacDays.filter(x=>x.date>a&&x.date<=b).reduce((s,x)=>s+x.hours,0);
+
   // accrual credited each pay-period end, based on hours actually WORKED:
-  // holidays in a period aren't worked, so they earn no accrual
+  // holiday AND vacation hours in a period aren't worked, so they earn no accrual
   let pStart=new Date(start), pEnd=addDays(start,14);
   while(pEnd<=end){
-    const inPeriod=hols.filter(h=>h.date>pStart&&h.date<=pEnd).length;
-    const worked=Math.max(0,hpp-8*inPeriod);
+    const holHrs=8*hols.filter(h=>h.date>pStart&&h.date<=pEnd).length;
+    const worked=Math.max(0,hpp-holHrs-vacHoursIn(pStart,pEnd));
     events.push({date:new Date(pEnd),kind:'accrual',delta:worked*tier.rate,name:''});
     pStart=new Date(pEnd); pEnd=addDays(pEnd,14);
   }
   hols.forEach(h=>events.push({date:h.date,kind:'holiday',delta:-8,name:h.name}));
+  vacBlocks.forEach(v=>events.push({date:v.start,kind:'vacation',delta:-v.total,name:v.label}));
   events.sort((a,b)=>(a.date-b.date)||((a.kind==='accrual'?0:1)-(b.kind==='accrual'?0:1)));
 
   // walk timeline
-  let bal=startBal, earned=0, used=0;
+  let bal=startBal, earned=0, holUsed=0, vacUsed=0;
   const tl=[{date:new Date(start),bal,kind:'start',name:''}];
   for(const e of events){
     if(e.delta>0){const nb=Math.min(cap,bal+e.delta);earned+=nb-bal;bal=nb;}
-    else{const nb=Math.max(0,bal+e.delta);used+=bal-nb;bal=nb;}
+    else{bal+=e.delta;const drawn=-e.delta;          // allow negative: an unaffordable plan should show
+      if(e.kind==='holiday')holUsed+=drawn; else vacUsed+=drawn;}
     tl.push({date:new Date(e.date),bal,kind:e.kind,name:e.name});
   }
-  const endBal=bal;
+  const endBal=bal, used=holUsed+vacUsed;
+  const trough=Math.min(...tl.map(p=>p.bal));
 
   // monthly rollup
   let my=start.getFullYear(),mm=start.getMonth();
@@ -293,18 +391,20 @@ function compute(){
   while(my<ey||(my===ey&&mm<=em)){monthsArr.push([my,mm]);mm++;if(mm>11){mm=0;my++;}}
   let b=startBal,ei=0;const rows=[];
   for(const [yy,mo] of monthsArr){
-    const me=new Date(yy,mo+1,0);let acc=0,hol=0,names=[];
+    const me=new Date(yy,mo+1,0);let acc=0,hol=0,vac=0,names=[];
     while(ei<events.length&&events[ei].date<=me){
       const e=events[ei];
       if(e.delta>0){const nb=Math.min(cap,b+e.delta);acc+=nb-b;b=nb;}
-      else{const nb=Math.max(0,b+e.delta);hol+=b-nb;b=nb;names.push(e.name);}
+      else{b+=e.delta;const drawn=-e.delta;
+        if(e.kind==='holiday'){hol+=drawn;names.push(e.name);} else vac+=drawn;}
       ei++;
     }
-    rows.push({m:`${MON[mo]} ${yy}`,acc,hol,names,bal:b,days:b/8});
+    rows.push({m:`${MON[mo]} ${yy}`,acc,hol,vac,names,bal:b,days:b/8});
   }
 
-  return {start,end,startBal,endBal,earned,used,tl,rows,cap,tier,ACC,months,hpp,
-          holCount:hols.length,peak:Math.max(...tl.map(p=>p.bal))};
+  return {start,end,startBal,endBal,earned,used,holUsed,vacUsed,tl,rows,cap,tier,ACC,months,hpp,trough,
+          holCount:hols.length,vacBlocks,vacDayCount:allVacDays.length,
+          peak:Math.max(...tl.map(p=>p.bal))};
 }
 
 function render(){
@@ -320,7 +420,11 @@ function render(){
   $('s2v').textContent=r0(d.endBal); $('s2u').textContent=`hrs · ${f1(d.endBal/8)} days`;
   const net=d.endBal-d.startBal;
   $('s3v').textContent=(net>=0?'+':'−')+r0(Math.abs(net));
-  $('s3u').textContent=`+${r0(d.earned)} earned −${r0(d.used)} used`;
+  let sub=`+${r0(d.earned)} earned`;
+  if(d.holUsed>0) sub+=` −${r0(d.holUsed)} hol`;
+  if(d.vacUsed>0) sub+=` −${r0(d.vacUsed)} vac`;
+  if(d.holUsed===0&&d.vacUsed===0) sub+=` · none used`;
+  $('s3u').textContent=sub;
   if(isFinite(d.cap)){
     const head=Math.max(0,d.cap-d.endBal);
     $('s4v').textContent=head<=0?'0':r0(head);
@@ -331,11 +435,13 @@ function render(){
   const start=d.start;
   const line=d.tl.map(p=>({x:dayIdx(p.date,start),y:p.bal}));
   const holPts=d.tl.filter(p=>p.kind==='holiday').map(p=>({x:dayIdx(p.date,start),y:p.bal,name:p.name}));
+  const vacPts=d.tl.filter(p=>p.kind==='vacation').map(p=>({x:dayIdx(p.date,start),y:p.bal,name:p.name}));
   const maxDay=dayIdx(d.end,start);
   const top=isFinite(d.cap)?Math.max(d.peak,d.cap):d.peak;
   let yMax=Math.max(80,Math.ceil(top*1.12/40)*40);
   if(isFinite(d.cap)) yMax=Math.max(yMax,Math.ceil(d.cap/40)*40+40);
-  const stepSize=yMax<=200?40:80;
+  const yMin=d.trough<0?Math.floor(d.trough/40)*40-20:0;
+  const stepSize=(yMax-yMin)<=200?40:80;
 
   // month ticks
   const TICKS=[],TLAB={};
@@ -347,19 +453,22 @@ function render(){
     tm++;if(tm>11){tm=0;ty++;}
   }
 
+  const C=v=>getComputedStyle(document.documentElement).getPropertyValue(v).trim();
   const datasets=[];
   if(isFinite(d.cap)) datasets.push({label:'cap',data:[{x:0,y:d.cap},{x:maxDay,y:d.cap}],
-    borderColor:getComputedStyle(document.documentElement).getPropertyValue('--cap').trim(),
-    borderWidth:1.5,borderDash:[6,5],pointRadius:0,fill:false,tension:0,order:3});
-  const C=v=>getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+    borderColor:C('--cap'),borderWidth:1.5,borderDash:[6,5],pointRadius:0,fill:false,tension:0,order:4});
   datasets.push({label:'Balance',data:line,stepped:true,borderColor:C('--earned'),borderWidth:2.4,
-    pointRadius:0,fill:true,backgroundColor:C('--earned-soft'),order:2});
+    pointRadius:0,fill:true,backgroundColor:C('--earned-soft'),order:3});
   if(holPts.length) datasets.push({label:'Holiday used',data:holPts,type:'scatter',showLine:false,
     pointStyle:'rectRot',pointRadius:5,pointHoverRadius:7,backgroundColor:C('--used'),
     borderColor:'#fff',borderWidth:1.4,order:1});
+  if(vacPts.length) datasets.push({label:'Vacation used',data:vacPts,type:'scatter',showLine:false,
+    pointStyle:'rectRot',pointRadius:6,pointHoverRadius:8,backgroundColor:C('--vac'),
+    borderColor:'#fff',borderWidth:1.4,order:2});
 
   // legend visibility
   $('holLegend').style.display=holPts.length?'inline-flex':'none';
+  $('vacLegend').style.display=vacPts.length?'inline-flex':'none';
   const capLeg=$('capLegend');
   if(isFinite(d.cap)){capLeg.classList.remove('off');$('capLegendTxt').textContent=`Max cap ${r0(d.cap)} hrs`;}
   else capLeg.classList.add('off');
@@ -394,7 +503,7 @@ function render(){
           afterBuildTicks:a=>{a.ticks=TICKS.map(v=>({value:v}));},
           ticks:{callback:v=>TLAB[v]||'',font:{family:"'IBM Plex Mono'",size:10.5},
             color:C('--ink-soft'),maxRotation:0,autoSkip:true,maxTicksLimit:9,padding:8}},
-        y:{min:0,max:yMax,grid:{color:C('--grid'),drawTicks:false},border:{display:false},
+        y:{min:yMin,max:yMax,grid:{color:C('--grid'),drawTicks:false},border:{display:false},
           ticks:{stepSize,font:{family:"'IBM Plex Mono'",size:10.5},color:C('--ink-soft'),
             padding:8,callback:v=>v+' hr'}}
       },
@@ -407,6 +516,7 @@ function render(){
               return dt.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});},
             label:ctx=>{
               if(ctx.dataset.label==='Holiday used') return ctx.raw.name+` · −8 hrs → ${ctx.parsed.y.toFixed(1)} hr`;
+              if(ctx.dataset.label==='Vacation used') return `Vacation ${ctx.raw.name} → ${ctx.parsed.y.toFixed(1)} hr`;
               if(ctx.dataset.label==='cap') return null;
               return `${ctx.parsed.y.toFixed(1)} hrs · ${(ctx.parsed.y/8).toFixed(1)} days`;}
           }}
@@ -417,41 +527,57 @@ function render(){
 
   // table
   const tb=$('tbody');tb.innerHTML='';
-  let tA=0,tH=0;
+  let tA=0,tH=0,tV=0;
   d.rows.forEach(r=>{
-    tA+=r.acc;tH+=r.hol;
+    tA+=r.acc;tH+=r.hol;tV+=r.vac;
     const tr=document.createElement('tr');
-    if(r.hol>0) tr.className='hol';
+    if(r.hol>0||r.vac>0) tr.className='hol';
     const holCell=r.hol>0?`−${r0(r.hol)} <span class="tag">${r.names.join(', ')}</span>`:'—';
+    const vacCell=r.vac>0?`−${r.vac.toFixed(1)}`:'—';
     tr.innerHTML=`<td>${r.m}</td>
       <td class="pos">${r.acc>0?'+'+r.acc.toFixed(2):'—'}</td>
       <td class="neg">${holCell}</td>
+      <td class="neg">${vacCell}</td>
       <td class="bal">${r.bal.toFixed(2)}</td>
       <td>${r.days.toFixed(1)}</td>`;
     tb.appendChild(tr);
   });
   $('tAcc').textContent='+'+tA.toFixed(2);
   $('tHol').textContent=tH>0?'−'+r0(tH):'—';
+  $('tVac').textContent=tV>0?'−'+f1(tV):'—';
   $('tBal').textContent=d.endBal.toFixed(2);
   $('tDays').textContent=f1(d.endBal/8);
 
+  // what-if summary + empty state
+  $('vacEmpty').style.display=d.vacBlocks.length?'none':'block';
+  if(d.vacBlocks.length){
+    const totDays=d.vacBlocks.reduce((s,v)=>s+v.nDays,0);
+    $('vacSum').textContent=`${d.vacBlocks.length} period${d.vacBlocks.length>1?'s':''} · ${totDays} work day${totDays>1?'s':''} · ${r0(d.vacUsed)} hrs used + ${(d.vacUsed*d.tier.rate).toFixed(1)} hrs forgone accrual`;
+  } else $('vacSum').textContent='';
+
   // notes
   const capNote=isFinite(d.cap)
-    ? `Balance is capped at <b>${r0(d.cap)} hrs (${f1(d.cap/8)} days)</b>; this path ${d.peak>=d.cap?'<b>reaches</b>':'peaks at <b>'+r0(d.peak)+' hrs</b> and never reaches'} the cap.`
-    : `No cap is applied for this tier — enter one in the Max balance field if your plan has one.`;
+    ? `Balance is capped at <b>${r0(d.cap)} hrs (${f1(d.cap/8)} days)</b> — derived from this tier's published max of <b>${d.tier.maxDays} days</b>. This path ${d.peak>=d.cap?'<b>reaches</b>':'peaks at <b>'+r0(d.peak)+' hrs</b> and never reaches'} the cap.`
+    : `No cap applies to this tier (it can't mathematically reach one). Enter a value in Max balance to impose your own.`;
   const tierNote = +tierSel.value===5
     ? `<div class="row">The 10th-year cap was published as "5444 hrs" — that appears to be a typo for <b>544</b> (68 days × 8). Adjust the cap field if your plan differs.</div>` : '';
+  const vacNote = d.vacBlocks.length
+    ? `<div class="row">Planned vacation: <b>${d.vacDayCount} work days</b> across <b>${d.vacBlocks.length}</b> period(s) draw down <b>−${r0(d.vacUsed)} hrs</b> and earn no accrual (<b>−${(d.vacUsed*d.tier.rate).toFixed(1)} hrs</b> forgone). Weekends and holidays inside a range are skipped.</div>` : '';
+  const shortNote = d.trough<0
+    ? `<div class="row"><b style="color:var(--used)">Heads up:</b> this plan drops the balance to <b>${f1(d.trough)} hrs</b> at its low point — the requested time off exceeds available hours. Reduce vacation or shift it later.</div>` : '';
   $('notes').innerHTML=
-    `<div class="row">Accrual <b>${d.tier.rate} hr/hr worked</b> × <b>${d.hpp} hrs/period</b> → <b>${d.ACC.toFixed(3)} hrs</b> per full bi-weekly period → <b>${(d.tier.rate*d.hpp*26).toFixed(1)} hrs (${f1(d.tier.rate*d.hpp*26/8)} days)</b> per year if no holidays fall in the period.</div>`+
-    (d.holCount>0?`<div class="row">Window contains <b>${d.holCount} holidays</b>. Each draws down <b>8 hrs</b> (vacation used) <i>and</i> earns no accrual, since those hours aren't worked — so a holiday period accrues only <b>${((d.hpp-8)*d.tier.rate).toFixed(3)} hrs</b>. Total holiday impact: <b>−${(d.holCount*8).toFixed(0)} hrs used</b> and <b>−${(d.holCount*8*d.tier.rate).toFixed(1)} hrs</b> of forgone accrual.</div>`:`<div class="row">Holidays are <b>not</b> modeled (toggle is off) — every period accrues the full amount.</div>`)+
+    `<div class="row">Accrual <b>${d.tier.rate} hr/hr worked</b> × <b>${d.hpp} hrs/period</b> → <b>${d.ACC.toFixed(3)} hrs</b> per full bi-weekly period → <b>${(d.tier.rate*d.hpp*26).toFixed(1)} hrs (${f1(d.tier.rate*d.hpp*26/8)} days)</b> per year if every day is worked.</div>`+
+    (d.holCount>0?`<div class="row">Window has <b>${d.holCount} holidays</b>. Each draws down <b>8 hrs</b> and earns no accrual — a holiday period accrues only <b>${((d.hpp-8)*d.tier.rate).toFixed(3)} hrs</b>. Holiday impact: <b>−${r0(d.holUsed)} hrs used</b> plus <b>−${(d.holCount*8*d.tier.rate).toFixed(1)} hrs</b> forgone accrual.</div>`:`<div class="row">Holidays are <b>not</b> modeled (toggle is off) — every period accrues the full amount.</div>`)+
+    vacNote+
+    shortNote+
     `<div class="row">${capNote}</div>`+
     tierNote;
 }
 
-// tier change → prefill cap
+// tier change → prefill cap from the rate's max-days parameter
 tierSel.addEventListener('change',()=>{
-  const t=TIERS[+tierSel.value];
-  $('cap').value=t.cap==null?'':t.cap;
+  const c=capHrs(TIERS[+tierSel.value]);
+  $('cap').value=c==null?'':c;
   render();
 });
 ['bal','date','hours','cap','hz'].forEach(id=>$(id).addEventListener('change',render));
@@ -461,7 +587,7 @@ syncToggle();
 $('go').addEventListener('click',render);
 
 // init: prefill cap for default tier, draw
-$('cap').value=TIERS[+tierSel.value].cap ?? '';
+{const c=capHrs(TIERS[+tierSel.value]); $('cap').value=c==null?'':c;}
 render();
 </script>
 </body>
